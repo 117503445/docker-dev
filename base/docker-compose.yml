@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  dev-base:
+    image: 117503445/dev-base
+    restart: unless-stopped
+    # ports:
+    #   - "8080:8080"
+    volumes:
+      - ./:/root/project
+    depends_on:
+      - db
+    stdin_open: true
+    tty: true
