@@ -1,4 +1,4 @@
-name: docker
+name: docker-base
 
 on:
   push:
@@ -47,8 +47,8 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: |
-            117503445/dev-golang
-            registry.cn-hangzhou.aliyuncs.com/117503445/dev-golang
+            117503445/dev-base
+            registry.cn-hangzhou.aliyuncs.com/117503445/dev-base
           tags: |
             type=schedule
             type=ref,event=branch
@@ -67,4 +67,4 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          file: "./golang/Dockerfile"
+          file: "./base/Dockerfile"
