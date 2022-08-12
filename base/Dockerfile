@@ -1,7 +1,7 @@
 FROM archlinux
 LABEL maintainer="117503445"
 WORKDIR /root
-RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
+RUN echo "Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 RUN pacman -Syyu which zsh btop git vim wget gcc --noconfirm
 COPY ./public ./public
 RUN ./public/download_vscode_server.sh
