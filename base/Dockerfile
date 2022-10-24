@@ -4,7 +4,7 @@ WORKDIR /root
 RUN echo "Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 RUN pacman -Syyu which zsh btop git vim wget gcc --noconfirm
 COPY ./public/pacman.conf /etc/pacman.conf
-RUN pacman -Syu archlinuxcn-keyring --noconfirm
+RUN pacman-key --init && pacman -Syu archlinuxcn-keyring --noconfirm
 RUN df -h
 RUN pacman -S base-devel --noconfirm
 RUN df -h
