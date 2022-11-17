@@ -99,6 +99,10 @@ export ZSH="$_HOME/.oh-my-zsh"
 ZSH_THEME="${_THEME}"
 plugins=($_PLUGINS)
 
+export PATH=/opt/miniconda3/bin:~/.local/bin:~/go/bin:$PATH
+export GOPATH=$HOME/go
+
+[[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
 EOM
     printf "$ZSHRC_APPEND"
     printf "\nsource \$ZSH/oh-my-zsh.sh\n"
