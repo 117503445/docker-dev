@@ -84,7 +84,7 @@ zshrc_template() {
     _PLUGINS=$*;
 
     if [ "$_THEME" = "default" ]; then
-        _THEME="powerlevel10k/powerlevel10k"
+        _THEME="eastwood"
     fi
 
     cat <<EOM
