@@ -12,7 +12,7 @@ pacman-key --init
 
 pacman -Sy archlinux-keyring --noconfirm
 pacman -Syyu --noconfirm
-pacman -S which zsh btop git docker docker-compose cronie nano vim micro net-tools dnsutils inetutils iproute2 traceroute --noconfirm
+pacman -S which zsh btop git docker docker-compose cronie nano vim micro net-tools dnsutils inetutils iproute2 traceroute base-devel --noconfirm
 
 cat>>/etc/pacman.conf<<EOF
 [archlinuxcn]
@@ -20,7 +20,6 @@ Server = https://repo.archlinuxcn.org/\$arch
 EOF
 
 pacman -Syu archlinuxcn-keyring --noconfirm
-pacman -S base-devel --noconfirm
 pacman -S yay --noconfirm
 
 chsh -s $(which zsh)
