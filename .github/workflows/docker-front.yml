@@ -50,7 +50,7 @@ jobs:
         with:
           images: |
             117503445/dev-front
-            registry.cn-hangzhou.aliyuncs.com/117503445/dev-front
+            registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-front
           tags: |
             type=schedule
             type=ref,event=branch

@@ -50,7 +50,7 @@ jobs:
         with:
           images: |
             117503445/dev-base
-            registry.cn-hangzhou.aliyuncs.com/117503445/dev-base
+            registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-base
           tags: |
             type=schedule
             type=ref,event=branch
