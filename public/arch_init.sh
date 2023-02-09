@@ -25,8 +25,8 @@ pacman -S yay --noconfirm
 chsh -s $(which zsh)
 
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git ~/ohmyzsh/custom/plugins/zsh-syntax-highlighting
-git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions.git ~/ohmyzsh/custom/plugins/zsh-autosuggestions
+git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions.git ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
 
 cat>>/etc/environment<<EOF
 LANG=en_US.utf-8
@@ -36,7 +36,7 @@ EOF
 tee ~/.zshrc <<-'EOF'
 DISABLE_UPDATE_PROMPT=true
 
-export ZSH="$HOME/ohmyzsh"
+export ZSH="$HOME/.oh-my-zsh"
 
 ZSH_THEME="eastwood"
 
