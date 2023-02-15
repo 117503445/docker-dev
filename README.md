@@ -33,3 +33,20 @@ docker run --rm -it 117503445/dev-base
 
 docker build -f ./golang/Dockerfile -t 117503445/dev-golang .
 ```
+
+## dev container
+
+`.devcontainer/devcontainer.json`
+
+```json
+{
+  "image": "117503445/dev-base",
+  "customizations": {
+    "vscode": {
+      // Add the IDs of extensions you want installed when the container is created.
+      "extensions": [
+      ]
+    }
+  }
+}
+```
