@@ -6,7 +6,8 @@ cat>/etc/timezone<<EOF
 Asia/Shanghai
 EOF
 
-echo "Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
+# echo "Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
+echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 
 pacman-key --init
 
@@ -16,7 +17,7 @@ pacman -S which zsh btop git docker docker-compose cronie nano vim micro net-too
 
 cat>>/etc/pacman.conf<<EOF
 [archlinuxcn]
-Server = https://repo.archlinuxcn.org/\$arch
+Server = https://mirrors.ustc.edu.cn/archlinuxcn/\$arch
 EOF
 
 pacman -Syu archlinuxcn-keyring --noconfirm

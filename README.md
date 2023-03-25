@@ -23,6 +23,10 @@ docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-latex && dock
 docker run -it -v $PWD:/root/project 117503445/dev-front
 docker run -it -v $PWD:/root/project 117503445/dev-golang
 docker run -it -v $PWD:/root/project 117503445/dev-latex
+docker run --name dev-kde -it --rm -p 5900:5900 -p 6080:6080 -e VNC_PASSWD=password -v ./public:/root/public -v ./systemctl.py:/usr/bin/systemctl --entrypoint /bin/zsh 117503445/dev-kde
+docker run --name dev-kde -it --rm -p 5900:5900 -p 6080:6080 -e VNC_PASSWD=password -v ./public/kde-start.sh:/root/public/kde-start.sh -v ./1.log:/root/public/x11vnc.log  117503445/dev-kde
+docker logs -f dev-kde
+docker rm -f dev-kde
 ```
 
 ## local dev
@@ -32,6 +36,8 @@ docker build -f ./base/Dockerfile -t 117503445/dev-base .
 docker run --rm -it 117503445/dev-base
 
 docker build -f ./golang/Dockerfile -t 117503445/dev-golang .
+
+docker build -f ./kde/Dockerfile -t 117503445/dev-kde .
 ```
 
 ## dev container
