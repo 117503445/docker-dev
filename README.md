@@ -23,6 +23,9 @@ docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-latex && dock
 docker run -it -v $PWD:/root/project 117503445/dev-front
 docker run -it -v $PWD:/root/project 117503445/dev-golang
 docker run -it -v $PWD:/root/project 117503445/dev-latex
+docker run -d --name dev-i3 -p 6080:6080 -e VNC_PASSWD=password -e USERNAME=arch 117503445/dev-i3
+docker run -d --name dev-i3 -p 6080:6080 -e VNC_PASSWD=password -v ${PWD}/public:/root/public 117503445/dev-i3
+# docker run -it -p 117503445/dev-i3
 ```
 
 ## local dev
@@ -32,6 +35,7 @@ docker build -f ./base/Dockerfile -t 117503445/dev-base .
 docker run --rm -it 117503445/dev-base
 
 docker build -f ./golang/Dockerfile -t 117503445/dev-golang .
+docker build -f ./i3/Dockerfile -t 117503445/dev-i3 .
 ```
 
 ## dev container
