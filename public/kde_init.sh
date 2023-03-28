@@ -2,10 +2,15 @@
 
 set -exv
 
+# echo "Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
+
 # Install apps
-pacman -Syu --noconfirm xorg-server \
-	wget tigervnc alacritty which \
-	i3-wm i3status python-setuptools ttf-dejavu
+# pacman-key --init && pacman -Sy archlinux-keyring --noconfirm &&
+pacman -Syu --noconfirm plasma-meta \
+	kde-accessibility-meta kde-system-meta konsole \
+	chromium vim wget tigervnc xorg-server \
+	python-numpy python-setuptools git \
+	&& pacman -Scc --noconfirm
 
 # Install noVNC
 if [ "$DISABLE_NOVNC" != "true" ]; then
@@ -24,3 +29,4 @@ if [ "$DISABLE_NOVNC" != "true" ]; then
 		&& ln -s vnc.html index.html \
 		&& rm /noVNC.tar.gz
 fi
+pacman -Syu kwallet-pam noto-fonts-cjk --noconfirm
