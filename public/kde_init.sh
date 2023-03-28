@@ -2,7 +2,7 @@
 
 set -exv
 
-# echo "Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
+echo "Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 
 # Install apps
 # pacman-key --init && pacman -Sy archlinux-keyring --noconfirm &&
@@ -30,3 +30,5 @@ if [ "$DISABLE_NOVNC" != "true" ]; then
 		&& rm /noVNC.tar.gz
 fi
 pacman -Syu kwallet-pam noto-fonts-cjk --noconfirm
+
+echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
