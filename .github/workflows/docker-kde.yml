@@ -1,4 +1,4 @@
-name: docker-i3
+name: docker-kde
 
 on:
   schedule:
@@ -49,8 +49,8 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: |
-            117503445/dev-i3
-            registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-i3
+            117503445/dev-kde
+            registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-kde
           tags: |
             type=schedule
             type=ref,event=branch
@@ -69,4 +69,4 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          file: "./i3/Dockerfile"
+          file: "./kde/Dockerfile"
