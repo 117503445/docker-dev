@@ -25,6 +25,9 @@ umask 0077                # use safe default permissions
 mkdir -p "$HOMEDIR/.vnc"
 chmod go-rwx "$HOMEDIR/.vnc" # enforce safe permissions
 
+# chromium
+sed -i 's/\/usr\/bin\/chromium/\/usr\/bin\/chromium --no-sandbox/g' /usr/share/applications/chromium.desktop
+
 # Start TigerVNC
 if [ ! -z $VNC_PASSWD ]; then
 	vncpasswd -f <<< "$VNC_PASSWD" > "$HOMEDIR/.vnc/passwd"
@@ -33,8 +36,6 @@ fi
 # chown -R $CUSER:$CUSER "$HOMEDIR"
 # Remove lock since stopping containers won't remove it
 rm -f /tmp/.X0-lock
-
-
 
 echo Starting vncsession...
 vncsession $CUSER :0

@@ -17,3 +17,7 @@ docker logs -f dev-kde
 
 docker exec -it 117503445/dev-kde /bin/bash
 ```
+
+<https://github.com/fennerm/arch-i3-novnc-docker>
+
+<https://github.com/DCsunset/docker-archlinux-vnc>
