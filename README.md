@@ -40,7 +40,7 @@ docker build -f ./kde/Dockerfile -t 117503445/dev-kde .
 
 `.devcontainer/devcontainer.json`
 
-```json
+```jsonc
 {
   "image": "117503445/dev-base",
   "customizations": {
