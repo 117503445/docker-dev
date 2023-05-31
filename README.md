@@ -34,6 +34,8 @@ docker run --rm -it 117503445/dev-base
 
 docker build -f ./golang/Dockerfile -t 117503445/dev-golang .
 docker build -f ./kde/Dockerfile -t 117503445/dev-kde .
+
+docker build -f ./python/Dockerfile -t 117503445/dev-python .
 ```
 
 ## dev container
