@@ -38,20 +38,26 @@ get_latest_release() {
 }
 
 commit_sha=$(get_latest_release "${owner}/${repo}")
-
-echo "will attempt to download VS Code Server version = '${commit_sha}'"
+echo $commit_sha
+# echo "will attempt to download VS Code Server version = '${commit_sha}'"
 
 # Download VS Code Server tarball to tmp directory.
-curl -L "https://update.code.visualstudio.com/commit:${commit_sha}/server-linux-x64/stable" -o "/tmp/${archive}"
+curl -s -L "https://update.code.visualstudio.com/commit:${commit_sha}/server-linux-x64/stable" -o "/tmp/${archive}"
 
 # Make the parent directory where the server should live.
 # NOTE: Ensure VS Code will have read/write access; namely the user running VScode or container user.
-mkdir -vp ~/.vscode-server/bin/"${commit_sha}"
+mkdir -p ~/.vscode-server/bin/"${commit_sha}"
 
 # Extract the tarball to the right location.
-tar --no-same-owner -xzv --strip-components=1 -C ~/.vscode-server/bin/"${commit_sha}" -f "/tmp/${archive}"
+tar --no-same-owner -xz --strip-components=1 -C ~/.vscode-server/bin/"${commit_sha}" -f "/tmp/${archive}"
 
-export PATH=~/.vscode-server/bin/${commit_sha}/bin/remote-cli:$PATH
+# export PATH=~/.vscode-server/bin/${commit_sha}/bin/remote-cli:$PATH
+# echo 'export PATH=~/.vscode-server/bin/${commit_sha}/bin/remote-cli:$PATH' >> /etc/profile
 
-echo "export ~/.vscode-server/bin/${commit_sha}/bin/remote-cli=$PATH" > /etc/environment
+ln -s ~/.vscode-server/bin/${commit_sha}/bin/remote-cli/code /usr/local/bin/code
 
+# cat << EOF > /etc/profile.d/vscode-server.sh
+# append_path '~/.vscode-server/bin/${commit_sha}/bin/remote-cli'
+# EOF
+
+# source /etc/profile

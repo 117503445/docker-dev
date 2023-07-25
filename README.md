@@ -29,7 +29,7 @@ docker run -d --name dev-kde -p 6080:6080 -e VNC_PASSWD=password 117503445/dev-k
 docker run -it -v $PWD:/root/project 117503445/dev-python
 ```
 
-## local dev
+## local build
 
 ```sh
 docker build -f ./base/Dockerfile -t 117503445/dev-base .
