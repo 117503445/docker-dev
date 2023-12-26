@@ -14,4 +14,4 @@ RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /et
 
 COPY ./public ./public
 WORKDIR /workspace
-ENTRYPOINT [ "zsh" ]
+ENTRYPOINT [ "fish" ]

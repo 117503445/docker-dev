@@ -16,6 +16,4 @@ x11vnc -display $DISPLAY -nopw -listen localhost -xkb -ncache 10 -ncache_cr -for
 
 # startplasma-x11 > /workspace/container/plasma.stdout.log 2>&1 &
 
-
-
 zsh
