@@ -9,22 +9,16 @@ EOF
 echo "Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 # echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 
+# https://wiki.archlinux.org/title/Pacman/Package_signing
 pacman-key --init
+pacman-key --populate
 
-pacman -Sy archlinux-keyring --noconfirm
-pacman -Syyu --noconfirm
-pacman -S which zsh fish btop git openssh docker docker-compose cronie nano vim micro net-tools dnsutils inetutils iproute2 traceroute base-devel parted tmux --noconfirm
-
-cat>>/etc/pacman.conf<<EOF
-[archlinuxcn]
-Server = https://repo.archlinuxcn.org/\$arch
-EOF
-
-pacman -Syu archlinuxcn-keyring --noconfirm
-pacman -S yay --noconfirm
+pacman -Sy archlinux-keyring --noconfirm && pacman -Su --noconfirm
+pacman -Syu which zsh fish btop git openssh docker docker-compose cronie nano vim micro net-tools dnsutils inetutils iproute2 traceroute base-devel parted tmux --noconfirm
 
 chsh -s /usr/bin/fish
 
+# https://wiki.archlinux.org/title/locale
 cat>>/etc/environment<<EOF
 LANG=en_US.utf-8
 LC_ALL=en_US.utf-8
