@@ -24,6 +24,7 @@ LANG=en_US.utf-8
 LC_ALL=en_US.utf-8
 EOF
 
+mkdir -p ~/.config/fish
 cat << EOF > ~/.config/fish/config.fish
 if status is-interactive
     set fish_greeting # Disable greeting
