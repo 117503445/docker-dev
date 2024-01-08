@@ -16,9 +16,7 @@ EXPOSE 6080
 
 RUN mkdir -p /workspace/container
 
-RUN pacman -Syu python --noconfirm
-
-RUN pacman -Syu plasma --noconfirm
+RUN pacman -Syu python plasma --noconfirm
 
 ENTRYPOINT [ "./container/entrypoint.sh" ]
 
