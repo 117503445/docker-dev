@@ -1,7 +1,5 @@
 set -ev
 
-curl https://wiki.117503445.top/linux/script/ssh.sh | bash
-
 cat>/etc/timezone<<EOF
 Asia/Shanghai
 EOF
@@ -14,7 +12,7 @@ pacman-key --init
 pacman-key --populate
 
 pacman -Sy archlinux-keyring --noconfirm && pacman -Su --noconfirm
-pacman -Syu which zsh fish btop git openssh docker docker-compose cronie nano vim micro net-tools dnsutils inetutils iproute2 traceroute base-devel parted tmux --noconfirm
+pacman -Syu which zsh fish btop git openssh docker docker-compose cronie nano vim micro net-tools dnsutils inetutils iproute2 traceroute base-devel parted tmux python --noconfirm
 
 chsh -s /usr/bin/fish
 
