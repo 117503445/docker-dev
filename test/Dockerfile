@@ -8,6 +8,4 @@ RUN ./public/download_vscode_server.sh
 COPY ./public/install_vsc_ext.py ./public/install_vsc_ext.py
 RUN /scripts/install_vsc_ext.py ms-python.python
 
-ENV TYPST_FONT_PATHS=/root/.local/share/fonts
-
 ENTRYPOINT [ "bash" ]
