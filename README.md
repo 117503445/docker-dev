@@ -73,3 +73,13 @@ docker build -f ./java/Dockerfile -t 117503445/dev-java .
   }
 }
 ```
+
+## misc
+
+```sh
+# install vscode extensions
+RUN /scripts/install_vsc_ext.py vscjava.vscode-java-pack vscjava.vscode-gradle fwcd.kotlin vscjava.vscode-spring-boot-dashboard vmware.vscode-boot-dev-pack
+
+# install by yay
+RUN su - builder -c "yay -Su scala --noconfirm"
+```
