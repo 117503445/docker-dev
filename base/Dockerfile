@@ -13,4 +13,7 @@ RUN ./install_vsc_ext.py mhutchie.git-graph ms-ceintl.vscode-language-pack-zh-ha
 RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 
 WORKDIR /workspace
-ENTRYPOINT [ "fish" ]
+
+COPY ./scripts/entrypoint.sh /entrypoint.sh
+
+ENTRYPOINT [ "/entrypoint.sh" ]
