@@ -10,4 +10,4 @@ COPY ./scripts/set_go.sh .
 RUN ./set_go.sh && rm set_go.sh
 WORKDIR /workspace
 
-RUN /scripts/install_vsc_ext.py golang.go
+ENV VSC_EXTS="golang.go,${VSC_EXTS}"

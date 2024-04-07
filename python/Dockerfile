@@ -8,4 +8,4 @@ RUN curl -o miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-L
 ENV PATH="/root/miniconda3/bin:${PATH}"
 # RUN conda init fish
 COPY ./python/.condarc /root/.condarc
-RUN /scripts/install_vsc_ext.py ms-python.black-formatter formulahendry.code-runner ms-python.isort matangover.mypy ms-python.vscode-pylance ms-python.python donjayamanne.python-environment-manager
+ENV VSC_EXTS="ms-python.black-formatter,formulahendry.code-runner,ms-python.isort,matangover.mypy,ms-python.vscode-pylance,ms-python.python,donjayamanne.python-environment-manager,${VSC_EXTS}"
