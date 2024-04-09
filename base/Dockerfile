@@ -10,6 +10,7 @@ RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /et
 
 WORKDIR /workspace
 
-COPY ./scripts/entrypoint.sh /entrypoint.sh
+COPY ./scripts/entrypoint.py /entrypoint.py
+COPY ./scripts/vsc_server_setup.py /vsc_server_setup.py
 
-ENTRYPOINT [ "/entrypoint.sh" ]
+ENTRYPOINT [ "/entrypoint.py" ]
