@@ -12,8 +12,8 @@ docker pull 117503445/dev-python
 docker pull 117503445/dev-rust
 docker pull 117503445/dev-cpp
 docker pull 117503445/dev-java
-docker pull 117503445/dev-latex
 docker pull 117503445/dev-typst
+docker pull 117503445/dev-latex
 
 # China mirror
 docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-base && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-base 117503445/dev-base
@@ -23,8 +23,8 @@ docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-python && doc
 docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-rust && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-rust 117503445/dev-rust
 docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-cpp && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-cpp 117503445/dev-cpp
 docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-java && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-java 117503445/dev-java
-docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-latex && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-latex 117503445/dev-latex
 docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-typst && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-typst 117503445/dev-typst
+docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-latex && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-latex 117503445/dev-latex
 ```
 
 ## usage
