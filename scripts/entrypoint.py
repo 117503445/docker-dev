@@ -20,7 +20,10 @@ def main():
     
     file_lock.write_text(str(os.getpid()))
     
-    subprocess.run(["/vsc_server_setup.py"], check=True)
+    try:
+        subprocess.run(["/vsc_server_setup.py"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
 
     print("=== Update Arch Linux Packages ===")
     subprocess.run(["pacman", "-Syu", "--noconfirm"], check=True)
