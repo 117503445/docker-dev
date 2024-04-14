@@ -39,7 +39,7 @@ def main():
         print("=== Run Custom Entrypoint ===")
         try:
             subprocess.run(["/entrypoint"], check=True)
-        except subprocess.CalledProcessError as e:
+        except Exception as e:
             print(f"Error: {e}")
         print("=== Run Custom Entrypoint Done ===")
 
