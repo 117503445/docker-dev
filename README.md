@@ -33,7 +33,6 @@ docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-latex && dock
 docker run -it -v $PWD:/root/project 117503445/dev-front
 docker run -it -v $PWD:/root/project 117503445/dev-golang
 docker run -it -v $PWD:/root/project 117503445/dev-latex
-docker run -d --name dev-kde -p 6080:6080 -e VNC_PASSWD=password 117503445/dev-kde
 docker run -it -v $PWD:/root/project 117503445/dev-python
 docker run -it -v $PWD:/root/project 117503445/dev-rust
 docker run -it -v $PWD:/root/project 117503445/dev-typst
@@ -48,7 +47,6 @@ docker build -f ./base/Dockerfile -t 117503445/dev-base .
 docker run --rm -it 117503445/dev-base
 
 docker build -f ./golang/Dockerfile -t 117503445/dev-golang .
-docker build -f ./kde/Dockerfile -t 117503445/dev-kde .
 
 docker build -f ./python/Dockerfile -t 117503445/dev-python .
 docker build -f ./rust/Dockerfile -t 117503445/dev-rust .
