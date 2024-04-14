@@ -31,10 +31,20 @@ def main():
 
     print("~~~ Successfully Init Development Environment, Enjoy! ~~~")
 
+
     file_lock.unlink()
 
-    # if -t 0
 
+    if Path('/entrypoint').exists():
+        print("=== Run Custom Entrypoint ===")
+        try:
+            subprocess.run(["/entrypoint"], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error: {e}")
+        print("=== Run Custom Entrypoint Done ===")
+
+
+    # if -t 0
     is_tty = os.isatty(0)
     if is_tty:
         subprocess.call(["/bin/fish"])
