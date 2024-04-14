@@ -6,7 +6,7 @@ import shutil
 import os
 
 def main():
-    file_lock = Path(__file__).with_suffix('.lock')
+    file_lock = Path(__file__ + '.lock')
     if file_lock.exists():
         pid = file_lock.read_text().strip()
         # check if the process is still running
