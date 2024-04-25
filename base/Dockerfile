@@ -4,7 +4,7 @@ WORKDIR /scripts
 COPY ./scripts/arch_init.sh .
 RUN ./arch_init.sh && rm arch_init.sh
 
-ENV VSC_EXTS mhutchie.git-graph,ms-ceintl.vscode-language-pack-zh-hans,github.copilot,christian-kohler.path-intellisense
+ENV VSC_EXTS mhutchie.git-graph,eamodio.gitlens,ms-ceintl.vscode-language-pack-zh-hans,github.copilot,christian-kohler.path-intellisense,tamasfe.even-better-toml,redhat.vscode-yaml
 
 RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 
