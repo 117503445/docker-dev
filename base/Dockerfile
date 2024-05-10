@@ -13,4 +13,6 @@ WORKDIR /workspace
 COPY ./scripts/entrypoint.py /entrypoint.py
 COPY ./scripts/vsc_server_setup.py /vsc_server_setup.py
 
+HEALTHCHECK --interval=3s --timeout=1s --start-period=240s --retries=5 CMD [ "test", "!", "-f", "/entrypoint.py.lock" ]
+
 ENTRYPOINT [ "/entrypoint.py" ]
