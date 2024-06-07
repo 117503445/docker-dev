@@ -1,8 +1,12 @@
 FROM archlinux
 LABEL maintainer="117503445"
+
+
 WORKDIR /scripts
 COPY ./scripts/arch_init.sh .
 RUN ./arch_init.sh && rm arch_init.sh
+
+RUN go install github.com/117503445/docker-dev/entrypoint@latest && cp /root/go/bin/entrypoint /entrypoint
 
 ENV VSC_EXTS mhutchie.git-graph,eamodio.gitlens,ms-ceintl.vscode-language-pack-zh-hans,github.copilot,christian-kohler.path-intellisense,tamasfe.even-better-toml,redhat.vscode-yaml
 
@@ -10,9 +14,9 @@ RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /et
 
 WORKDIR /workspace
 
-COPY ./scripts/entrypoint.py /entrypoint.py
+# COPY ./scripts/entrypoint.py /entrypoint.py
 COPY ./scripts/vsc_server_setup.py /vsc_server_setup.py
 
-HEALTHCHECK --interval=3s --timeout=1s --start-period=240s --retries=5 CMD [ "test", "!", "-f", "/entrypoint.py.lock" ]
+# HEALTHCHECK --interval=3s --timeout=1s --start-period=240s --retries=5 CMD [ "test", "!", "-f", "/entrypoint.py.lock" ]
 
-ENTRYPOINT [ "/entrypoint.py" ]
+ENTRYPOINT [ "/entrypoint" ]

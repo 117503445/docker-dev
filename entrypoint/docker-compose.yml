@@ -1,0 +1,14 @@
+services:
+  entrypoint-dev:
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev
+    volumes:
+        - ./:/workspace
+        - entrypoint-dev-vsc:/root/.vscode-server
+    stdin_open: true
+    tty: true
+    init: true
+
+volumes:
+  entrypoint-dev-vsc:
