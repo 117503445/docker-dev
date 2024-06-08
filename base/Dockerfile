@@ -6,7 +6,7 @@ WORKDIR /scripts
 COPY ./scripts/arch_init.sh .
 RUN ./arch_init.sh && rm arch_init.sh
 
-RUN go install github.com/117503445/docker-dev/entrypoint@latest && cp /root/go/bin/entrypoint /entrypoint
+RUN cd /tmp && git clone https://github.com/117503445/docker-dev.git --depth=1 && cd docker-dev/entrypoint && go build . && cp ./entrypoint /entrypoint
 
 ENV VSC_EXTS mhutchie.git-graph,eamodio.gitlens,ms-ceintl.vscode-language-pack-zh-hans,github.copilot,christian-kohler.path-intellisense,tamasfe.even-better-toml,redhat.vscode-yaml
 
