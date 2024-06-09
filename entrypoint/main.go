@@ -1,17 +1,49 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/mattn/go-isatty"
 	"os/exec"
+
+	"github.com/mattn/go-isatty"
 )
+
+func installVscExtensions() {
+
+	// list all dirs in /root/.vscode-server/bin
+	vscVersions, err := filepath.Glob("/root/.vscode-server/bin/*")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to list Visual Studio Code Server versions")
+		return
+	}
+	if len(vscVersions) == 0 {
+		log.Warn().Msg("No Visual Studio Code Server version found, skip installing extensions")
+		return
+	}
+
+	fileVsc := fmt.Sprintf("/root/.vscode-server/bin/%s/bin/code-server", filepath.Base(vscVersions[0]))
+
+	vscExts := os.Getenv("VSC_EXTS")
+	exts := strings.Split(vscExts, ",")
+	for _, ext := range exts {
+		log.Debug().Str("ext", ext).Msg("Install Visual Studio Code Extension")
+		CMD("", fileVsc, "--install-extension", ext)
+		log.Debug().Str("ext", ext).Msg("Install Visual Studio Code Extension Done")
+	}
+
+	CMD("", fileVsc, "--update-extensions")
+}
 
 func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02 15:04:05"})
+
+	installVscExtensions()
 
 	log.Debug().Msg("Update Arch Linux Packages")
 	CMD("", "pacman", "-Syu", "--noconfirm")

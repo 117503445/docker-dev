@@ -5,7 +5,8 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
         - ./:/workspace
-        - entrypoint-dev-vsc:/root/.vscode-server
+        - ~/.vscode-server/bin:/root/.vscode-server/bin
+        - entrypoint-dev-vsc:/root/.vscode-server/extensions
     stdin_open: true
     tty: true
     init: true
