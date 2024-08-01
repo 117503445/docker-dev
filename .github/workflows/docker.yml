@@ -87,6 +87,7 @@ jobs:
           - rust
           - typst
           - java
+          - coding
     steps:
       # https://github.com/actions/checkout
       - name: Checkout
