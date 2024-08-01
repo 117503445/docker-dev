@@ -5,13 +5,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/rs/zerolog/log"
-
 	"os/exec"
 
-	"github.com/117503445/goutils"
+	_ "embed"
+	"github.com/rs/zerolog/log"
 	"github.com/mattn/go-isatty"
+	"github.com/117503445/goutils"
 )
 
 func installVscExtensions() {
@@ -39,6 +38,8 @@ func installVscExtensions() {
 	goutils.CMD("", fileVsc, "--update-extensions")
 }
 
+//go:embed code-server-config-template.yaml
+var codeServerConfigTemplate string
 func main() {
 	goutils.InitZeroLog()
 
@@ -55,10 +56,7 @@ func main() {
 			log.Warn().Msg("CODE_SERVER_PASSWORD is not set, use default password")
 			codeServerPassword = "123456"
 		}
-		codeServerConfigTemplate := `bind-addr: 0.0.0.0:8080
-		auth: password
-		password: %s
-		cert: false`
+
 		codeServerConfigText := fmt.Sprintf(codeServerConfigTemplate, codeServerPassword)
 
 		if err := os.MkdirAll(filepath.Dir(codeServerConfigPath), 0755); err != nil {
