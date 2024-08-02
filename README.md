@@ -6,9 +6,10 @@ use docker to build development environment
 
 ```sh
 docker pull 117503445/dev-base
-docker pull 117503445/dev-front
+docker pull 117503445/dev-coding
 docker pull 117503445/dev-golang
 docker pull 117503445/dev-python
+docker pull 117503445/dev-front
 docker pull 117503445/dev-rust
 docker pull 117503445/dev-cpp
 docker pull 117503445/dev-java
@@ -17,9 +18,10 @@ docker pull 117503445/dev-latex
 
 # China mirror
 docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-base && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-base 117503445/dev-base
-docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-front && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-front 117503445/dev-front
+docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-coding && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-coding 117503445/dev-coding
 docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-golang && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-golang 117503445/dev-golang
 docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-python && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-python 117503445/dev-python
+docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-front && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-front 117503445/dev-front
 docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-rust && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-rust 117503445/dev-rust
 docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-cpp && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-cpp 117503445/dev-cpp
 docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-java && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-java 117503445/dev-java
