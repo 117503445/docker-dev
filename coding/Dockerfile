@@ -42,6 +42,8 @@ RUN ./set_go.sh && rm set_go.sh
 WORKDIR /workspace
 
 # RUST
-COPY rust/cargo_config /root/.cargo/config
+COPY rust/config.toml /root/.cargo/config.toml
 RUN rustup default stable
 RUN cargo install cargo-watch
+ENV RUSTUP_DIST_SERVER="https://rsproxy.cn"
+ENV RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
