@@ -14,6 +14,7 @@ docker pull 117503445/dev-rust
 docker pull 117503445/dev-cpp
 docker pull 117503445/dev-java
 docker pull 117503445/dev-typst
+docker pull 117503445/dev-csharp
 docker pull 117503445/dev-latex
 
 # China mirror
@@ -27,6 +28,7 @@ docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-cpp && docker
 docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-java && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-java 117503445/dev-java
 docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-typst && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-typst 117503445/dev-typst
 docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-latex && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-latex 117503445/dev-latex
+docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-csharp && docker image tag registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev-csharp 117503445/dev-csharp
 ```
 
 ## usage
@@ -40,6 +42,7 @@ docker run -it -v $PWD:/root/project 117503445/dev-rust
 docker run -it -v $PWD:/root/project 117503445/dev-typst
 docker run -it -v $PWD:/root/project 117503445/dev-cpp
 docker run -it -v $PWD:/root/project 117503445/dev-java
+docker run -it -v $PWD:/root/project 117503445/dev-csharp
 ```
 
 ## local build
