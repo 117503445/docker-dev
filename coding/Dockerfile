@@ -47,3 +47,6 @@ RUN rustup default stable
 RUN cargo install cargo-watch
 ENV RUSTUP_DIST_SERVER="https://rsproxy.cn"
 ENV RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
+
+# CSHARP
+RUN pacman -Syu dotnet-runtime dotnet-sdk aspnet-runtime --noconfirm

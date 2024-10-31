@@ -76,11 +76,8 @@ func main() {
 	goutils.Exec("systemctl start code-server@root")
 
 	fileCustomEntrypoint := "/entrypoint"
-	if _, err := os.Stat(fileCustomEntrypoint); err == nil {
+	if goutils.PathExists(fileCustomEntrypoint) {
 		goutils.Exec(fileCustomEntrypoint)
-		// log.Debug().Msg("Run Custom Entrypoint")
-		// goutils.CMD("", fileCustomEntrypoint)
-		// log.Debug().Msg("Run Custom Entrypoint Done")
 	}
 
 	var isTTY bool

@@ -1,8 +1,8 @@
-FROM golang:1.22.3
+FROM golang:1.23.2
 
 WORKDIR /build
 
-RUN go env -w GOPROXY=https://goproxy.cn,direct
+# RUN go env -w GOPROXY=https://goproxy.cn,direct
 
 COPY go.mod go.sum ./
 

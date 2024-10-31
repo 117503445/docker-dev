@@ -1,4 +1,4 @@
-!#/usr/bin/env bash
+#!/usr/bin/env bash
 set -e
 
 go install github.com/cweill/gotests/gotests@latest
