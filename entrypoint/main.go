@@ -3,14 +3,14 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
-	"os/exec"
 
 	_ "embed"
-	"github.com/rs/zerolog/log"
-	"github.com/mattn/go-isatty"
 	"github.com/117503445/goutils"
+	"github.com/mattn/go-isatty"
+	"github.com/rs/zerolog/log"
 )
 
 func installVscExtensions() {
@@ -30,24 +30,29 @@ func installVscExtensions() {
 	vscExts := os.Getenv("VSC_EXTS")
 	exts := strings.Split(vscExts, ",")
 	for _, ext := range exts {
-		log.Debug().Str("ext", ext).Msg("Install Visual Studio Code Extension")
-		goutils.CMD("", fileVsc, "--install-extension", ext)
-		log.Debug().Str("ext", ext).Msg("Install Visual Studio Code Extension Done")
+		cmd := fmt.Sprintf("%s --install-extension %s", fileVsc, ext)
+		// log.Debug().Str("ext", ext).Msg("Install Visual Studio Code Extension")
+		goutils.Exec(cmd)
+		// log.Debug().Str("ext", ext).Msg("Install Visual Studio Code Extension Done")
 	}
 
-	goutils.CMD("", fileVsc, "--update-extensions")
+	cmd := fmt.Sprintf("%s --update-extensions", fileVsc)
+
+	goutils.Exec(cmd)
 }
 
 //go:embed code-server-config-template.yaml
 var codeServerConfigTemplate string
+
 func main() {
 	goutils.InitZeroLog()
 
 	installVscExtensions()
 
-	log.Debug().Msg("Update Arch Linux Packages")
-	goutils.CMD("", "pacman", "-Syu", "--noconfirm")
-	log.Debug().Msg("Update Arch Linux Packages Done")
+	// log.Debug().Msg("Update Arch Linux Packages")
+	// goutils.CMD("", "pacman", "-Syu", "--noconfirm")
+	goutils.Exec("pacman -Syu --noconfirm")
+	// log.Debug().Msg("Update Arch Linux Packages Done")
 
 	codeServerConfigPath := "/root/.config/code-server/config.yaml"
 	if _, err := os.Stat(codeServerConfigPath); os.IsNotExist(err) {
@@ -67,20 +72,22 @@ func main() {
 			}
 		}
 	}
-	goutils.CMD("", "systemctl", "start", "code-server@root")
+	// goutils.CMD("", "systemctl", "start", "code-server@root")
+	goutils.Exec("systemctl start code-server@root")
 
 	fileCustomEntrypoint := "/entrypoint"
 	if _, err := os.Stat(fileCustomEntrypoint); err == nil {
-		log.Debug().Msg("Run Custom Entrypoint")
-		goutils.CMD("", fileCustomEntrypoint)
-		log.Debug().Msg("Run Custom Entrypoint Done")
+		goutils.Exec(fileCustomEntrypoint)
+		// log.Debug().Msg("Run Custom Entrypoint")
+		// goutils.CMD("", fileCustomEntrypoint)
+		// log.Debug().Msg("Run Custom Entrypoint Done")
 	}
 
 	var isTTY bool
 	if isatty.IsTerminal(os.Stdout.Fd()) {
 		isTTY = true
 	} else if isatty.IsCygwinTerminal(os.Stdout.Fd()) {
-		panic("Cygwin terminal is not supported")
+		log.Fatal().Msg("Cygwin terminal is not supported")
 	} else {
 		isTTY = false
 	}
@@ -99,6 +106,7 @@ func main() {
 		}
 		log.Debug().Msg("Exit fish shell")
 	} else {
-		goutils.CMD("", "tail", "-f", "/dev/null")
+		// goutils.CMD("", "tail", "-f", "/dev/null")
+		goutils.Exec("tail -f /dev/null")
 	}
 }
