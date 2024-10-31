@@ -46,6 +46,7 @@ var codeServerConfigTemplate string
 
 func main() {
 	goutils.InitZeroLog()
+	goutils.ExecOpt.DumpOutput = true
 
 	installVscExtensions()
 
