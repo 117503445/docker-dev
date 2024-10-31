@@ -1,6 +1,6 @@
 FROM 117503445/dev-base
 LABEL maintainer="117503445"
-RUN pacman -Syu dotnet-sdk --noconfirm
+RUN pacman -Syu dotnet-runtime dotnet-sdk aspnet-runtime --noconfirm
 
 
 # ENV PATH="/root/miniconda3/bin:${PATH}"
