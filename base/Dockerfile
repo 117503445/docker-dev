@@ -16,7 +16,7 @@ RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /et
 WORKDIR /workspace
 
 # COPY ./scripts/entrypoint.py /entrypoint.py
-COPY ./scripts/vsc_server_setup.py /vsc_server_setup.py
+# COPY ./scripts/vsc_server_setup.py /vsc_server_setup.py
 
 RUN su - builder -c "yay -Su code-server --noconfirm"
 

@@ -89,3 +89,9 @@ RUN /scripts/install_vsc_ext.py vscjava.vscode-java-pack vscjava.vscode-gradle f
 # install by yay
 RUN su - builder -c "yay -Su scala --noconfirm"
 ```
+
+## code-server
+
+访问容器的 4444 端口即可使用 code-server
+
+可以设置 CODE_SERVER_PASSWORD 环境变量来设置密码

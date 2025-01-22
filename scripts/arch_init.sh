@@ -1,8 +1,6 @@
-set -ev
+#!/usr/bin/env bash
 
-cat>/etc/timezone<<EOF
-Asia/Shanghai
-EOF
+set -ev
 
 echo "Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 #echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
@@ -12,7 +10,7 @@ pacman-key --init
 pacman-key --populate
 
 pacman -Sy archlinux-keyring --noconfirm && pacman -Su --noconfirm
-pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro net-tools dnsutils inetutils iproute2 traceroute base-devel parted tmux python wget yazi --noconfirm
+pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task --noconfirm
 
 chsh -s /usr/bin/fish
 
@@ -23,7 +21,6 @@ LC_ALL=en_US.utf-8
 EOF
 
 # https://preciselab.io/how-to-install-yay-on-pure-archlinux-image/
-pacman -Sy base-devel --noconfirm
 mkdir -p /tmp/yay-build
 useradd -m -G wheel builder && passwd -d builder
 chown -R builder:builder /tmp/yay-build
