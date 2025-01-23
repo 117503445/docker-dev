@@ -1,21 +1,89 @@
 FROM archlinux
 LABEL maintainer="117503445"
-ARG china_mirror
+ARG CHINA_MIRROR
 
-WORKDIR /scripts
-COPY ./scripts/arch_init.sh .
-RUN ./arch_init.sh && rm arch_init.sh
+# 设置环境变量，避免中文乱码问题
+# ENV LANG=en_US.utf-8 \
+#     LC_ALL=en_US.utf-8
 
-RUN mkdir -p /docker-dev
-RUN cd /tmp && git clone https://github.com/117503445/docker-dev.git --depth=1 && cd docker-dev/entrypoint && go build . && cp ./entrypoint /docker-dev/entrypoint
+# 根据是否存在 $CHINA_MIRROR 环境变量设置软件源
+ARG CHINA_MIRROR
+RUN if [ -z "$CHINA_MIRROR" ]; then \
+      echo "Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist; \
+    else \
+      echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist; \
+    fi
+
+# 初始化并填充 pacman 密钥环
+RUN pacman-key --init && \
+    pacman-key --populate && \
+    pacman -Sy archlinux-keyring --noconfirm && \
+    pacman -Su --noconfirm
+
+# 安装所需软件包
+RUN pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task go --noconfirm
+
+# 如果设置了 $CHINA_MIRROR 环境变量，则配置go代理
+RUN if [ -n "$CHINA_MIRROR" ]; then \
+      go env -w GOPROXY=https://goproxy.cn,direct; \
+    fi
+
+# 添加用户 builder，并安装 yay AUR 助手
+RUN useradd -m -G wheel builder && \
+    chown -R builder:builder /tmp && \
+    echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers && \
+    su - builder -c "cd /tmp && git clone https://aur.archlinux.org/yay.git yay && cd yay && makepkg -si --noconfirm" && \
+    rm -rf /tmp/yay
+
+# 配置 git 全局设置
+RUN git config --global user.name "117503445" && \
+    git config --global user.email t117503445@gmail.com && \
+    git config --global push.default current && \
+    git config --global core.editor "code --wait"
 
 RUN su - builder -c "yay -Su code-server --noconfirm"
-ADD https://github.com/gdraheim/docker-systemctl-replacement/raw/master/files/docker/systemctl3.py /usr/local/bin/systemctl
-RUN chmod +x /usr/local/bin/systemctl
+EXPOSE 4444
 
-EXPOSE 8080
+# ADD https://github.com/gdraheim/docker-systemctl-replacement/raw/master/files/docker/systemctl3.py /usr/local/bin/systemctl
+# RUN chmod +x /usr/local/bin/systemctl
+
+RUN go install github.com/mattn/goreman@latest
+ENV PATH="/root/go/bin:${PATH}"
 
 RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
+
+# 更改默认 shell 为 fish
+RUN chsh -s /usr/bin/fish
+# 创建 fish 配置文件夹并添加配置
+# RUN mkdir -p /root/.config/fish && \
+#     echo 'if status is-interactive\n\
+#         set fish_greeting # Disable greeting\n\
+#         set -x PATH ~/.local/bin ~/go/bin $PATH\n\
+#         alias dc="docker compose"\n\
+#         alias dcu="dc up -d"\n\
+#         alias dcd="dc down"\n\
+#         alias dcl="dc logs -f"\n\
+#         alias dcp="dc pull"\n\
+#         alias dcr="dc restart"\n\
+#         alias dc-update="dcp && dcu"\n\
+#         function ta\n\
+#             tar -cvf $argv[1].tar $argv[1]\n\
+#         end\n\
+#         function targz\n\
+#             tar -zcvf $argv[1].tar.gz $argv[1]\n\
+#         end\n\
+#         function untar\n\
+#             tar -xvf $argv[1]\n\
+#         end\n\
+#         function untargz\n\
+#             tar -zxvf $argv[1]\n\
+#         end\n\
+#     end' > /root/.config/fish/config.fish
+COPY ./scripts/config.fish /root/.config/fish/config.fish
+
+RUN mkdir -p /docker-dev/logs
+COPY ./entrypoint /tmp/entrypoint
+RUN cd /tmp/entrypoint && cp Procfile /docker-dev/Procfile && go build . && cp ./entrypoint /docker-dev/entrypoint && rm -rf /tmp/entrypoint
 
 WORKDIR /workspace
 

@@ -92,3 +92,5 @@ RUN su - builder -c "yay -Su scala --noconfirm"
 访问容器的 4444 端口即可使用 code-server
 
 可以设置 CODE_SERVER_PASSWORD 环境变量来设置密码
+
+/entrypoint 可以自定义启动命令
