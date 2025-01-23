@@ -2,15 +2,23 @@
 
 set -ev
 
-echo "Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
-#echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
+echo "china_mirror = $china_mirror"
+if [ -z "$china_mirror" ]; then
+  echo "Server = https://mirrors.kernel.org/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
+else
+  echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
+fi
 
 # https://wiki.archlinux.org/title/Pacman/Package_signing
 pacman-key --init
 pacman-key --populate
-
 pacman -Sy archlinux-keyring --noconfirm && pacman -Su --noconfirm
-pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task --noconfirm
+
+pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task go --noconfirm
+
+if [ -n "$china_mirror" ]; then
+  go env -w GOPROXY=https://goproxy.cn,direct
+fi
 
 chsh -s /usr/bin/fish
 

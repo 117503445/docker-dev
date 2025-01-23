@@ -1,0 +1,13 @@
+version: '3'
+
+tasks:
+  default:
+    desc: "The default task" 
+    # deps: [deploy]
+    cmds:
+      - task: build-mainland
+      
+  build-mainland:
+    desc: "Build the image in China Mainland"
+    cmds:
+      - docker build -t 117503445/dev-base -f ./base/Dockerfile --build-arg china_mirror=1 .
