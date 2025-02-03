@@ -41,44 +41,17 @@ RUN git config --global user.name "117503445" && \
     git config --global push.default current && \
     git config --global core.editor "code --wait"
 
-RUN su - builder -c "yay -Su code-server --noconfirm"
-EXPOSE 4444
-
-# ADD https://github.com/gdraheim/docker-systemctl-replacement/raw/master/files/docker/systemctl3.py /usr/local/bin/systemctl
-# RUN chmod +x /usr/local/bin/systemctl
-
 RUN go install github.com/mattn/goreman@latest
 ENV PATH="/root/go/bin:${PATH}"
+
+RUN su - builder -c "yay -Su code-server --noconfirm"
+RUN go install github.com/117503445/vsc-init@master && vsc-init
+EXPOSE 4444
 
 RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 
 # 更改默认 shell 为 fish
 RUN chsh -s /usr/bin/fish
-# 创建 fish 配置文件夹并添加配置
-# RUN mkdir -p /root/.config/fish && \
-#     echo 'if status is-interactive\n\
-#         set fish_greeting # Disable greeting\n\
-#         set -x PATH ~/.local/bin ~/go/bin $PATH\n\
-#         alias dc="docker compose"\n\
-#         alias dcu="dc up -d"\n\
-#         alias dcd="dc down"\n\
-#         alias dcl="dc logs -f"\n\
-#         alias dcp="dc pull"\n\
-#         alias dcr="dc restart"\n\
-#         alias dc-update="dcp && dcu"\n\
-#         function ta\n\
-#             tar -cvf $argv[1].tar $argv[1]\n\
-#         end\n\
-#         function targz\n\
-#             tar -zcvf $argv[1].tar.gz $argv[1]\n\
-#         end\n\
-#         function untar\n\
-#             tar -xvf $argv[1]\n\
-#         end\n\
-#         function untargz\n\
-#             tar -zxvf $argv[1]\n\
-#         end\n\
-#     end' > /root/.config/fish/config.fish
 COPY ./scripts/config.fish /root/.config/fish/config.fish
 
 RUN mkdir -p /docker-dev/logs
