@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	_ "embed"
 
@@ -21,22 +20,15 @@ func main() {
 	goutils.ExecOpt.DumpOutput = true
 
 	codeServerConfigPath := "/root/.config/code-server/config.yaml"
-	if !goutils.FileExists(codeServerConfigPath) {
-		codeServerPassword := os.Getenv("CODE_SERVER_PASSWORD")
-		if codeServerPassword == "" {
-			log.Warn().Msg("CODE_SERVER_PASSWORD is not set, use default password")
-			codeServerPassword = "123456"
-		}
-
-		codeServerConfigText := fmt.Sprintf(codeServerConfigTemplate, codeServerPassword)
-
-		if err := os.MkdirAll(filepath.Dir(codeServerConfigPath), 0755); err != nil {
-			log.Error().Err(err).Msg("Failed to create code-server config directory")
-		} else {
-			if err := os.WriteFile(codeServerConfigPath, []byte(codeServerConfigText), 0644); err != nil {
-				log.Error().Err(err).Msg("Failed to write code-server config file")
-			}
-		}
+	codeServerPassword := os.Getenv("CODE_SERVER_PASSWORD")
+	if codeServerPassword == "" {
+		log.Warn().Msg("CODE_SERVER_PASSWORD is not set, use default password")
+		codeServerPassword = "123456"
+	}
+	codeServerConfigText := fmt.Sprintf(codeServerConfigTemplate, codeServerPassword)
+	err := goutils.WriteText(codeServerConfigPath, codeServerConfigText)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to write code-server config file")
 	}
 
 	go func() {
