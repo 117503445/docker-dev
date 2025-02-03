@@ -2,10 +2,6 @@ FROM archlinux
 LABEL maintainer="117503445"
 ARG CHINA_MIRROR
 
-# 设置环境变量，避免中文乱码问题
-# ENV LANG=en_US.utf-8 \
-#     LC_ALL=en_US.utf-8
-
 # 根据是否存在 $CHINA_MIRROR 环境变量设置软件源
 ARG CHINA_MIRROR
 RUN if [ -z "$CHINA_MIRROR" ]; then \
@@ -35,6 +31,9 @@ RUN useradd -m -G wheel builder && \
     su - builder -c "cd /tmp && git clone https://aur.archlinux.org/yay.git yay && cd yay && makepkg -si --noconfirm" && \
     rm -rf /tmp/yay
 
+RUN su - builder -c "yay -Su code-server --noconfirm"
+EXPOSE 4444
+
 # 配置 git 全局设置
 RUN git config --global user.name "117503445" && \
     git config --global user.email t117503445@gmail.com && \
@@ -44,11 +43,8 @@ RUN git config --global user.name "117503445" && \
 RUN go install github.com/mattn/goreman@latest
 ENV PATH="/root/go/bin:${PATH}"
 
-RUN su - builder -c "yay -Su code-server --noconfirm"
+RUN go env -w GOPROXY=direct
 RUN go install github.com/117503445/vsc-init@master && vsc-init
-EXPOSE 4444
-
-RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 
 # 更改默认 shell 为 fish
 RUN chsh -s /usr/bin/fish
@@ -57,6 +53,9 @@ COPY ./scripts/config.fish /root/.config/fish/config.fish
 RUN mkdir -p /docker-dev/logs
 COPY ./entrypoint /tmp/entrypoint
 RUN cd /tmp/entrypoint && cp Procfile /docker-dev/Procfile && go build . && cp ./entrypoint /docker-dev/entrypoint && rm -rf /tmp/entrypoint
+
+RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
+RUN go env -w GOPROXY=https://goproxy.cn,direct
 
 WORKDIR /workspace
 
