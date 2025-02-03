@@ -24,6 +24,9 @@ RUN pacman -Syu poetry mypy rye --noconfirm
 RUN poetry config virtualenvs.in-project true
 RUN su - builder -c "yay -Su miniconda3 --noconfirm"
 
+# CSHARP
+RUN pacman -Syu dotnet-runtime dotnet-sdk aspnet-runtime --noconfirm
+
 # RUST
 RUN pacman -Syu rustup --noconfirm
 
@@ -47,6 +50,3 @@ RUN rustup default stable
 RUN cargo install cargo-watch
 ENV RUSTUP_DIST_SERVER="https://rsproxy.cn"
 ENV RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
-
-# CSHARP
-RUN pacman -Syu dotnet-runtime dotnet-sdk aspnet-runtime --noconfirm
