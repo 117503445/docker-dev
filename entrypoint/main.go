@@ -20,16 +20,12 @@ func main() {
 	goutils.InitZeroLog()
 	goutils.ExecOpt.DumpOutput = true
 
-	enableCodeServer := false
-
 	codeServerConfigPath := "/root/.config/code-server/config.yaml"
 	if !goutils.FileExists(codeServerConfigPath) {
 		codeServerPassword := os.Getenv("CODE_SERVER_PASSWORD")
 		if codeServerPassword == "" {
-			// log.Warn().Msg("CODE_SERVER_PASSWORD is not set, use default password")
+			log.Warn().Msg("CODE_SERVER_PASSWORD is not set, use default password")
 			codeServerPassword = "123456"
-		} else {
-			enableCodeServer = true
 		}
 
 		codeServerConfigText := fmt.Sprintf(codeServerConfigTemplate, codeServerPassword)
@@ -42,25 +38,25 @@ func main() {
 			}
 		}
 	}
-	if enableCodeServer {
-		go func() {
-			file, err := os.OpenFile("/docker-dev/logs/goreman.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-			if err != nil {
-				fmt.Println("Error opening file:", err)
-				return
-			}
-			defer file.Close()
 
-			cmd := exec.Command("goreman", "start")
-			// cmd.Stdin = os.Stdin
-			cmd.Stdout = file
-			cmd.Stderr = file
-			cmd.Dir = "/docker-dev"
-			if err := cmd.Run(); err != nil {
-				log.Error().Err(err).Msg("Failed to run goreman")
-			}
-		}()
-	}
+	go func() {
+		file, err := os.OpenFile("/docker-dev/logs/goreman.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if err != nil {
+			fmt.Println("Error opening file:", err)
+			return
+		}
+		defer file.Close()
+
+		cmd := exec.Command("goreman", "start")
+		// cmd.Stdin = os.Stdin
+		cmd.Stdout = file
+		cmd.Stderr = file
+		cmd.Dir = "/docker-dev"
+		log.Info().Str("log", "/docker-dev/logs/goreman.log").Msg("Starting goreman")
+		if err := cmd.Run(); err != nil {
+			log.Error().Err(err).Msg("Failed to run goreman")
+		}
+	}()
 
 	fileCustomEntrypoint := "/entrypoint"
 	if goutils.PathExists(fileCustomEntrypoint) {
