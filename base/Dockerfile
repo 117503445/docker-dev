@@ -1,6 +1,5 @@
 FROM archlinux
 LABEL maintainer="117503445"
-ARG CHINA_MIRROR
 
 # 根据是否存在 $CHINA_MIRROR 环境变量设置软件源
 ARG CHINA_MIRROR
