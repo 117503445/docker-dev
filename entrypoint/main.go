@@ -67,16 +67,16 @@ func main() {
 	// log.Debug().Bool("isTTY", isTTY).Msg("Check if TTY")
 
 	if isTTY {
-		cmd := exec.Command("/bin/fish")
+		cmd := exec.Command("/bin/zsh")
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stdout
-		// log.Debug().Msg("Enter fish shell")
+		// log.Debug().Msg("Enter zsh shell")
 		err := cmd.Run()
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to run fish shell")
+			log.Error().Err(err).Msg("Failed to run zsh shell")
 		}
-		// log.Debug().Msg("Exit fish shell")
+		// log.Debug().Msg("Exit zsh shell")
 	} else {
 		goutils.Exec("tail -f /dev/null")
 	}

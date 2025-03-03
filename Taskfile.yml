@@ -10,8 +10,9 @@ tasks:
   build-mainland:
     desc: "Build the image in China Mainland"
     cmds:
+      # - docker pull archlinux
       - docker build -t 117503445/dev-base -f ./base/Dockerfile --build-arg CHINA_MIRROR=1 .
-      - docker build -t 117503445/dev-golang -f ./golang/Dockerfile --build-arg CHINA_MIRROR=1 .
-      # docker run -it --rm 117503445/dev-base
+      # - docker build -t 117503445/dev-golang -f ./golang/Dockerfile --build-arg CHINA_MIRROR=1 .
+      - docker run -it --rm 117503445/dev-base 
       # docker run -it --rm --env CODE_SERVER_PASSWORD=1 117503445/dev-base
       # docker run -it --rm --entrypoint /bin/bash 117503445/dev-base

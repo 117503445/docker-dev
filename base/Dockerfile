@@ -16,7 +16,7 @@ RUN pacman-key --init && \
     pacman -Su --noconfirm
 
 # 安装所需软件包
-RUN pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task go --noconfirm
+RUN pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task go zsh-autosuggestions zsh-syntax-highlighting --noconfirm
 
 # 如果设置了 $CHINA_MIRROR 环境变量，则配置go代理
 RUN if [ -n "$CHINA_MIRROR" ]; then \
@@ -45,16 +45,24 @@ ENV PATH="/root/go/bin:${PATH}"
 RUN go env -w GOPROXY=direct
 RUN go install github.com/117503445/vsc-init@master && vsc-init
 
-# 更改默认 shell 为 fish
-RUN chsh -s /usr/bin/fish
-COPY ./scripts/config.fish /root/.config/fish/config.fish
-
 RUN mkdir -p /docker-dev/logs
 COPY ./entrypoint /tmp/entrypoint
 RUN cd /tmp/entrypoint && cp Procfile /docker-dev/Procfile && go build . && cp ./entrypoint /docker-dev/entrypoint && rm -rf /tmp/entrypoint
 
 RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 RUN go env -w GOPROXY=https://goproxy.cn,direct
+
+# 更改默认 shell 为 zsh
+RUN chsh -s /usr/bin/zsh
+# COPY ./scripts/config.fish /root/.config/fish/config.fish
+# RUN su - builder -c "yay -Su --noconfirm oh-my-zsh-git"
+RUN if [ -z "$CHINA_MIRROR" ]; then \
+      sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"; \
+    else \
+      sh -c "$(curl -fsSL https://install.ohmyz.sh)"; \
+    fi
+COPY ./scripts/.zshrc /root/.zshrc
+
 
 WORKDIR /workspace
 
