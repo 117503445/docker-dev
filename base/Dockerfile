@@ -40,6 +40,7 @@ RUN git config --global user.name "117503445" && \
     git config --global core.editor "code --wait"
 
 RUN go install github.com/mattn/goreman@latest
+RUN go install github.com/ycd/dstp/cmd/dstp@latest
 ENV PATH="/root/go/bin:${PATH}"
 
 RUN go env -w GOPROXY=direct
