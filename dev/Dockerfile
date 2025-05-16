@@ -37,6 +37,8 @@ RUN /root/go/bin/vsc-init
 # 如果设置了 $CHINA_MIRROR 环境变量，则配置go代理
 RUN if [ -n "$CHINA_MIRROR" ]; then \
       go env -w GOPROXY=https://goproxy.cn,direct; \
+    else \
+      go env -w GOPROXY=https://proxy.golang.org,direct; \
     fi
 
 # 配置 git 全局设置
