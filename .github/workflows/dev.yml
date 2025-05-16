@@ -16,6 +16,17 @@ jobs:
   dev:
     runs-on: ubuntu-latest
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 40000
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+        
+      - run: df -h
+
       # https://github.com/actions/checkout
       - name: Checkout
         uses: actions/checkout@v4
