@@ -1,0 +1,7 @@
+services:
+  dev:
+    image: 117503445/dev
+    restart: unless-stopped
+    volumes:
+      - ./:/workspace
+      # - ./vscode.js:/usr/lib/code-server/out/node/routes/vscode.js
