@@ -16,3 +16,8 @@ tasks:
       - docker run -it --rm 117503445/dev-base 
       # docker run -it --rm --env CODE_SERVER_PASSWORD=1 117503445/dev-base
       # docker run -it --rm --entrypoint /bin/bash 117503445/dev-base
+  
+  build-dev-mainland:
+    desc: "Build the dev image in China Mainland"
+    cmds:
+      - docker build -t 117503445/dev -f ./dev/Dockerfile --build-arg CHINA_MIRROR=1 . --build-arg BASE_IMAGE=registry.cn-hangzhou.aliyuncs.com/117503445-mirror/sync:linux.amd64.docker.io.library.archlinux.latest
