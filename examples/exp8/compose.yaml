@@ -1,0 +1,11 @@
+services:
+  dev:
+    image: 117503445/dev
+    restart: unless-stopped
+    volumes:
+      - ./:/workspace
+      - lingma:/root/.lingma
+      - cache:/root/.cache
+volumes:
+  lingma:
+  cache:

@@ -1,0 +1,12 @@
+services:
+  dev:
+    environment:
+      - CODE_SERVER_PASSWORD=K8bDE57LaAp0vp
+    networks:
+      - frp
+    labels:
+      - frpc.vsc-exp7=4444
+
+networks:
+  frp:
+    external: true

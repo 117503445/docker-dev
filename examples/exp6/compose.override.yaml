@@ -1,0 +1,4 @@
+services:
+  dev:
+    environment:
+      - CODE_SERVER_PASSWORD=K8bDE57LaAp0vp

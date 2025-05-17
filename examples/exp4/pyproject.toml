@@ -1,0 +1,43 @@
+[project]
+name = "exp4"
+version = "0.1.0"
+requires-python = ">=3.12.0"
+dependencies = [
+  "matplotlib>=3.10.0",
+  "onnx>=1.17.0",
+  "onnxruntime>=1.20.1",
+  "onnxscript>=0.2.0",
+  "torch>=2.6.0",
+  "torchvision>=0.21.0",
+]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
+]
+torchvision = [
+  { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+# url = "https://download.pytorch.org/whl/cu124"
+url = "https://mirror.sjtu.edu.cn/pytorch-wheels/cu124"
+# url = "https://mirrors.aliyun.com/pytorch-wheels/cu124"
+explicit = true
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+default = true
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9.6",
+]
+
+# [tool.ruff.lint]
+# select = ["ALL"]
+# ignore = ["T201", "ANN001"]
+
+[tool.ruff]
+line-length = 120

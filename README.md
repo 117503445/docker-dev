@@ -162,17 +162,201 @@ dockerd
 docker compose exec dev docker info # 查看容器内的 Docker 守护进程信息
 ```
 
-### `examples/exp4` - GPU
+### `examples/exp4` - CUDA
 
-开发 AI 项目时，需要使用 GPU。
+开发 AI 项目时，需要使用 CUDA。
 
 首先确保宿主机已安装 NVIDIA 驱动和 `nvidia-container-toolkit`
 
+```yaml
+# compose.yaml
+services:
+  dev:
+    image: 117503445/dev
+    volumes:
+        - ./:/workspace
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+```
 
+其他 Python 工程文件见 `exp4` 目录。容器内可使用具有 CUDA 加速的 Pytorch
 
-### `examples/exp999` - 使用 Code Server
+```sh
+docker compose exec dev uv run main.py
+```
+
+输出
+
+```
+torch.cuda.is_available: True
+```
+
+### `examples/exp5` - DinD CUDA
+
+Dind(Docker in Docker) 同样可以使用 CUDA
+
+```yaml
+services:
+  dev:
+    build:
+      dockerfile: dev.Dockerfile
+    volumes:
+        - ./:/workspace
+        - ./scripts/entrypoint.sh:/entrypoint
+        - docker:/var/lib/docker
+    privileged: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+volumes:
+  docker:
+```
+
+```dockerfile
+# dev.Dockerfile
+FROM 117503445/dev
+
+RUN pacman -Sy --noconfirm nvidia-container-toolkit
+```
+
+验证
+
+```sh
+# 1. 进入容器 Shell
+docker compose exec dev zsh
+# 2a. 验证 DinD 是否可以使用 CUDA
+docker run --rm -it --gpus=all nvcr.io/nvidia/k8s/cuda-sample:nbody nbody -gpu -benchmark
+# 2b. 使用国内镜像
+docker run --rm -it --gpus=all registry.cn-hangzhou.aliyuncs.com/117503445-mirror/sync:linux.amd64.nvcr.io.nvidia.k8s.cuda-sample.nbody nbody -gpu -benchmark
+```
+
+### `examples/exp6` - 使用 Code Server 和 go-task
 
 Code Server 是一个基于 VS Code 的浏览器端 IDE。`117503445/dev` 镜像内置了 Code Server，开发者在任何一台设备的浏览器上都可以访问开发环境。
 
 ```yaml
 # compose.yaml
+services:
+  dev:
+    image: 117503445/dev
+    restart: unless-stopped
+    ports:
+      - "4444:4444"
+    volumes:
+      - ./:/workspace
+```
+
+在 `compose.override.yaml` 中注入 `CODE_SERVER_PASSWORD` 环境变量。在实际项目中，可以将 `compose.override.yaml` 放入 `.gitignore` 中，避免 Code Server 密码泄露。
+
+```yaml
+# compose.override.yaml
+services:
+  dev:
+    environment:
+      - CODE_SERVER_PASSWORD=K8bDE57LaAp0vp
+```
+
+在浏览器中输入 `http://SERVER_IP:4444`，即可访问 Code Server。
+
+![code server](docs/assets/1.png)
+
+`go-task` 是一个 Go 编写的命令运行器。详情见 [go-task documentation](https://taskfile.dev/usage/)。
+
+```yaml
+# Taskfile.yml
+version: '3'
+
+tasks:
+  default:
+    desc: "The default task" 
+    cmds:
+      - clear
+      - task: run
+      
+  run:
+    cmds:
+      - go run .
+  
+  build:
+    cmds:
+      - go build .
+```
+
+在 Code Server 中，按下 F5，即可在终端中运行 `go-task`，也就是 `go run .`。
+
+### `examples/exp7` - 满血 Code Server
+
+`exp6` 基于端口访问容器 Code Server，当宿主机上有十几个项目容器时，存在以下问题
+
+- `http://SERVER_IP:4444` 属于 `insecure context`，无法启用剪贴板和 PWA。只有 PWA 模式下可以使用 `ctrl w` 等快捷键，因此无法启用 PWA 会导致开发体验下降。而 `http://localhost` 和 `https` 属于安全上下文，可以使用所有功能
+- 端口冲突，需要给每个容器手动指定宿主机端口
+- 语义不清晰，难以获悉端口号和项目的对应关系
+
+可以使用 SSH 端口转发等方式，将 Code Server 端口映射到开发机的 localhost 上，从而启用剪贴板和 PWA。但这样仍然无法解决后面 2 个问题，而且每次需要使用某个容器时都要打开 SSH 端口转发，非常麻烦。
+
+最理想的方式，就是容器启动后，自动生成一个 https 域名，可以访问容器内的 Code Server。比如 project0 启动后，自动就可以从 `https://vsc-project0.117503445.top` 访问开发环境。为了实现这一点，可以进行以下流程
+
+1. 参考 [中小型应用运维](https://wiki.117503445.top/practice/中小型应用运维)，在公网云服务器上配置 Traefik 网关，支持泛域名 HTTPS 和基于 Host 的路由。
+2. 参考 [traefik-provider-frp: 将 frps 代理信息提供给 Traefik，从而实现自动反向代理](https://zhuanlan.zhihu.com/p/26025560346)，在公网服务器上部署 `frps` 和 `traefik-provider-frp` 服务，允许自动为 frp 连接创建 https 子域名和路由。
+3. 参考 [frpc-controller: 基于 Docker Labels 自动生成 frpc 配置文件](https://zhuanlan.zhihu.com/p/26026511814)，在运行容器的开发服务器上，运行 `frpc-controller`，自动为具有特定标签的 Docker 容器创建 frp 连接。
+
+然后可以很简单地编写 Docker Compose
+
+```yaml
+# compose.yaml
+services:
+  dev:
+    image: 117503445/dev
+    restart: unless-stopped
+    volumes:
+      - ./:/workspace
+```
+
+```yaml
+services:
+  dev:
+    environment:
+      - CODE_SERVER_PASSWORD=K8bDE57LaAp0vp
+    networks:
+      - frp
+    labels:
+      - frpc.vsc-exp7=4444
+
+networks:
+  frp:
+    external: true
+```
+
+启动容器后，即可通过 https 域名访问容器，并可以启用 PWA
+
+![pwa](docs/assets/2.png)
+
+启用 PWA 后，Code Server 和 本地 VSCode 的体验几乎一致
+
+## `examples/exp8` - 通义灵码
+
+通义灵码是一款很好用的 AI 辅助编码工具，需要持久化 `/root/.lingma` 和 `/root/.cache`。
+
+```yaml
+# compose.yaml
+services:
+  dev:
+    image: 117503445/dev
+    restart: unless-stopped
+    volumes:
+      - ./:/workspace
+      - lingma:/root/.lingma
+      - cache:/root/.cache
+volumes:
+  lingma:
+  cache:
+```
