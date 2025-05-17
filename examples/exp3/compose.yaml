@@ -1,0 +1,10 @@
+services:
+  dev:
+    image: 117503445/dev
+    volumes:
+        - ./:/workspace
+        - ./scripts/entrypoint.sh:/entrypoint
+        - docker:/var/lib/docker
+    privileged: true
+volumes:
+  docker:

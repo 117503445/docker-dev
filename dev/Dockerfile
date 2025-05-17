@@ -50,10 +50,6 @@ RUN git config --global user.name "117503445" && \
 RUN go install github.com/mattn/goreman@latest
 RUN go install github.com/ycd/dstp/cmd/dstp@latest
 
-RUN mkdir -p /docker-dev/logs
-COPY ./entrypoint /tmp/entrypoint
-RUN cd /tmp/entrypoint && cp Procfile /docker-dev/Procfile && go build . && cp ./entrypoint /docker-dev/entrypoint && rm -rf /tmp/entrypoint
-
 # 更改默认 shell 为 zsh
 RUN chsh -s /usr/bin/zsh
 # RUN su - builder -c "yay -Su --noconfirm oh-my-zsh-git"
@@ -81,8 +77,8 @@ RUN su - builder -c "yay -Su miniconda3 --noconfirm"
 COPY ./dev/python/.condarc /root/.condarc
 
 # latex
-RUN pacman -Syu texlive make gnu-free-fonts texlive-langchinese biber --noconfirm
-RUN git clone https://github.com/Haixing-Hu/latex-chinese-fonts.git /usr/share/fonts/latex-chinese-fonts --depth=1
+# RUN pacman -Syu texlive make gnu-free-fonts texlive-langchinese biber --noconfirm
+# RUN git clone https://github.com/Haixing-Hu/latex-chinese-fonts.git /usr/share/fonts/latex-chinese-fonts --depth=1
 
 # cpp
 RUN pacman -Syu gcc clang cmake --noconfirm
@@ -91,8 +87,8 @@ RUN pacman -Syu gcc clang cmake --noconfirm
 RUN pacman -Syu --noconfirm dotnet-runtime dotnet-sdk aspnet-runtime
 
 # java
-RUN pacman -Sy jdk-openjdk maven gradle --noconfirm
-RUN su - builder -c "yay -Su scala --noconfirm"
+RUN pacman -Sy jdk-openjdk maven gradle kotlin --noconfirm
+# RUN su - builder -c "yay -Su scala --noconfirm"
 
 # rust
 RUN pacman -Syu rustup --noconfirm
@@ -103,10 +99,14 @@ ENV RUSTUP_DIST_SERVER="https://rsproxy.cn"
 ENV RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
 
 # typst
-RUN pacman -Syu typst noto-fonts noto-fonts-cjk adobe-source-han-sans-cn-fonts noto-fonts-emoji ttf-ubuntu-font-family --noconfirm
-COPY typst/fonts /usr/share/fonts/docker-dev
-ENV TYPST_FONT_PATHS=/usr/share/fonts
-RUN wget https://github.com/Enter-tainer/typstyle/releases/latest/download/typstyle-x86_64-unknown-linux-gnu -o typstyle && chmod +x typstyle && mv typstyle /usr/bin/typstyle
+# RUN pacman -Syu typst noto-fonts noto-fonts-cjk adobe-source-han-sans-cn-fonts noto-fonts-emoji ttf-ubuntu-font-family --noconfirm
+# COPY typst/fonts /usr/share/fonts/docker-dev
+# ENV TYPST_FONT_PATHS=/usr/share/fonts
+# RUN wget https://github.com/Enter-tainer/typstyle/releases/latest/download/typstyle-x86_64-unknown-linux-gnu -o typstyle && chmod +x typstyle && mv typstyle /usr/bin/typstyle
+
+RUN mkdir -p /docker-dev/logs
+COPY ./entrypoint /tmp/entrypoint
+RUN cd /tmp/entrypoint && cp Procfile /docker-dev/Procfile && go build . && cp ./entrypoint /docker-dev/entrypoint && rm -rf /tmp/entrypoint
 
 WORKDIR /workspace
 

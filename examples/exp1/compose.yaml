@@ -1,0 +1,7 @@
+services:
+  dev:
+    build:
+      dockerfile: dev.Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ./:/workspace

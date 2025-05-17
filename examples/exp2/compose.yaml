@@ -1,0 +1,6 @@
+services:
+  dev:
+    image: 117503445/dev@sha256:342935c6d952acaef3149f4219761a9d433356172a9e7c9263e31bfb9f8aef7c
+    restart: unless-stopped
+    volumes:
+      - ./:/workspace

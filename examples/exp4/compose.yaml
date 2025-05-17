@@ -1,0 +1,14 @@
+services:
+  dev:
+    image: 117503445/dev
+    volumes:
+        - ./:/workspace
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+volumes:
+  docker:
