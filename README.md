@@ -19,31 +19,38 @@ docker pull registry.cn-hangzhou.aliyuncs.com/117503445-mirror/dev && docker ima
 docker run -it -v $PWD:/workspace 117503445/dev
 ```
 
-## 思想
+## 核心理念
 
-开发环境构建往往是一个烦人的问题。
+开发环境搭建往往是一个烦人的问题。
 
 常规的做法是直接在系统上安装各种开发工具和环境，但这样存在以下缺点
 
-- 缺乏隔离性，系统中
-- 缺乏可复现性。同样的步骤
-- 
+- 缺乏隔离性，系统中/其他项目的依赖可能会影响到本项目的运行。
+- 缺乏可复现性。就算用文档/脚本记录了操作，换台电脑可能就失败了，或者过几个月也自动失效了。
 
-## 高级
+所以必须把开发环境放在容器里，具有以下优点
+
+但为什么要把 IDE 也放在容器中呢？为什么不用 VSCode Remote / Dev Containers 呢？因为开发机上的 VSCode 必然是不断升级的，最终会与版本停滞的项目不兼容。比如项目使用了 Go 1.17，但是 VSCode 不断升级，导致 Go 扩展的版本也不断升级，最后升级的 Go 扩展就无法兼容。
+
+然后就是 IDE 也放在容器中的话，对开发者比较方便。一行命令启动开发容器后，然后在浏览器中打开，不需要再去考虑本地装 VSCode、装拓展、改设置了。可以增强团队开发环境的一致性。
+
+然后要进一步收敛开发工具。比如 API 调用，常用 Postman，但是每个人自己配置的话就比较麻烦。可以替换为 `humao.rest-client` 拓展。而且这个拓展鼓励将 API 调用放在一个单独的文本文件中，方便Git 管理。
+
+## 进阶用法
 
 ### 安装软件包
 
-临时安装软件包
+通过以下命令临时安装所需的软件包
 
 ```sh
-# install by pacman
+# 使用 pacman 安装 Go
 pacman -Sy --noconfirm go
 
-# install by yay
+# 切换到 builder 用户并使用 yay 安装 Scala
 su - builder -c "yay -Su scala --noconfirm"
 ```
 
-但是更推荐将软件包安装写进 Dockerfile 中
+**建议：** 更推荐将软件包的安装步骤写入 `Dockerfile` 中，以确保构建过程的透明性和可重复性。参考 `examples/exp1`。
 
 ### code-server
 
@@ -131,9 +138,12 @@ services:
 
 ### `examples/exp3` - Docker in Docker
 
-有时候项目开发依赖于 Docker，为了提供开发环境，可以在 Docker 容器内通过挂载 docker.sock 来访问宿主机的 Docker 守护进程。但这会带来一些问题，比如使用 `-v` 参数进行卷映射时，路径是宿主机的而不是容器的。此外，不可避免的依赖于宿主的 Docker 环境，可能会有潜在的风险。
+在项目开发中，有时会依赖 Docker 来提供完整的开发环境。一种常见的做法是，在 Docker 容器内通过挂载 `docker.sock` 来访问宿主机上的 Docker 守护进程。这种方式虽然简便，但存在一些局限性和潜在问题：
 
-所以，`docker in docker` 是一个更加优雅的方案。在容器内运行 dockerd，防止影响到宿主机的 Docker 环境。
+- 当使用 `-v` 参数进行卷映射时，路径是相对于宿主机的，而不是容器内部的路径，容易导致路径混乱或配置错误。
+- 容器运行依赖于宿主机的 Docker 环境，这会引入环境耦合，导致在不同机器上行为不一致，影响可移植性和环境一致性。
+
+因此，一个更加优雅且隔离性更强的方案是使用 **Docker-in-Docker(DinD)**。即：在容器内部运行自己的 `dockerd` 服务，完全独立于宿主机的 Docker 环境。这样可以避免对宿主机造成影响，提升环境的一致性和安全性。
 
 ```yaml
 # compose.yaml
@@ -295,19 +305,33 @@ tasks:
 
 ### `examples/exp7` - 满血 Code Server
 
-`exp6` 基于端口访问容器 Code Server，当宿主机上有十几个项目容器时，存在以下问题
+当前 `exp6` 示例中通过宿主机端口访问容器内的 Code Server（如 `http://SERVER_IP:4444`），在同时运行多个项目容器时存在以下几个主要问题：
 
-- `http://SERVER_IP:4444` 属于 `insecure context`，无法启用剪贴板和 PWA。只有 PWA 模式下可以使用 `ctrl w` 等快捷键，因此无法启用 PWA 会导致开发体验下降。而 `http://localhost` 和 `https` 属于安全上下文，可以使用所有功能
-- 端口冲突，需要给每个容器手动指定宿主机端口
-- 语义不清晰，难以获悉端口号和项目的对应关系
+- 安全上下文限制
 
-可以使用 SSH 端口转发等方式，将 Code Server 端口映射到开发机的 localhost 上，从而启用剪贴板和 PWA。但这样仍然无法解决后面 2 个问题，而且每次需要使用某个容器时都要打开 SSH 端口转发，非常麻烦。
+  使用 IP 地址加端口号访问属于 **非安全上下文（insecure context）**，无法启用剪贴板功能和 PWA（渐进式 Web App）。只有在使用 `localhost` 或 `https` 协议时，浏览器才允许启用这些高级特性。
 
-最理想的方式，就是容器启动后，自动生成一个 https 域名，可以访问容器内的 Code Server。比如 project0 启动后，自动就可以从 `https://vsc-project0.117503445.top` 访问开发环境。为了实现这一点，可以进行以下流程
+  其中，PWA 模式下才能支持完整的快捷键操作（如 `Ctrl + W` 关闭标签页），缺少该模式会显著影响开发体验。
+- 端口冲突
+
+  每个容器都需要手动指定一个宿主机端口，容易造成端口冲突，尤其在并行运行多个开发容器时管理成本较高。
+- 语义不清晰
+
+  通过端口号难以直观识别其对应的具体项目。
+
+一种常见的替代方式是使用 SSH 端口转发，将容器中的 Code Server 映射到开发机本地的 `localhost`，从而启用剪贴板和 PWA 功能。然而，这种方式依然无法解决后两个问题（端口管理和语义不清），并且每次使用容器前都需手动启动 SSH 转发，操作繁琐。
+
+最理想的方式是：当容器启动后，自动为其分配一个唯一的 HTTPS 域名，实现便捷、统一、无感知的访问。例如，启动名为 `project0` 的开发容器后，可以通过如下地址直接访问 Code Server：
+
+```
+https://vsc-project0.117503445.top
+```
+
+为了实现这一点，可以进行以下流程
 
 1. 参考 [中小型应用运维](https://wiki.117503445.top/practice/中小型应用运维)，在公网云服务器上配置 Traefik 网关，支持泛域名 HTTPS 和基于 Host 的路由。
-2. 参考 [traefik-provider-frp: 将 frps 代理信息提供给 Traefik，从而实现自动反向代理](https://zhuanlan.zhihu.com/p/26025560346)，在公网服务器上部署 `frps` 和 `traefik-provider-frp` 服务，允许自动为 frp 连接创建 https 子域名和路由。
-3. 参考 [frpc-controller: 基于 Docker Labels 自动生成 frpc 配置文件](https://zhuanlan.zhihu.com/p/26026511814)，在运行容器的开发服务器上，运行 `frpc-controller`，自动为具有特定标签的 Docker 容器创建 frp 连接。
+2. 参考 [traefik-provider-frp: 将 frps 代理信息提供给 Traefik，从而实现自动反向代理](https://zhuanlan.zhihu.com/p/26025560346)，在公网服务器上部署 `frps` 和 `traefik-provider-frp` 服务，使 Traefik 能够自动发现 frp 隧道并为其创建子域名和反向代理规则。
+3. 参考 [frpc-controller: 基于 Docker Labels 自动生成 frpc 配置文件](https://zhuanlan.zhihu.com/p/26026511814)，在运行容器的开发服务器上运行 `frpc-controller`，根据 Docker 容器的 Label 自动生成 frpc 配置，实现隧道连接的自动化管理。
 
 然后可以很简单地编写 Docker Compose
 
@@ -340,11 +364,11 @@ networks:
 
 ![pwa](docs/assets/2.png)
 
-启用 PWA 后，Code Server 和 本地 VSCode 的体验几乎一致
+启用 PWA 后，Code Server 的使用体验几乎与本地 VSCode 保持一致，包括快捷键、剪贴板等功能。
 
 ## `examples/exp8` - 通义灵码
 
-通义灵码是一款很好用的 AI 辅助编码工具，需要持久化 `/root/.lingma` 和 `/root/.cache`。
+通义灵码是一款很好用的 AI 辅助编码工具，需要持久化 `/root/.lingma` 和 `/root/.cache`，以防止重建容器后登录信息丢失。
 
 ```yaml
 # compose.yaml
