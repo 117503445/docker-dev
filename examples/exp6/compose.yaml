@@ -3,6 +3,6 @@ services:
     image: 117503445/dev
     restart: unless-stopped
     ports:
-      - "44444:4444"
+      - "4444:4444"
     volumes:
       - ./:/workspace

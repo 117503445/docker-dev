@@ -64,21 +64,22 @@ func main() {
 	}
 
 	go func() {
-		file, err := os.OpenFile("/docker-dev/logs/goreman.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		fileLog := "/docker-dev/logs/code-server.log"
+		file, err := os.OpenFile(fileLog, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
-			fmt.Println("Error opening file:", err)
+			log.Fatal().Err(err).Msg("Failed to open file")
 			return
 		}
 		defer file.Close()
 
-		cmd := exec.Command("goreman", "start")
+		cmd := exec.Command("/usr/sbin/code-server")
 		// cmd.Stdin = os.Stdin
 		cmd.Stdout = file
 		cmd.Stderr = file
 		cmd.Dir = "/docker-dev"
-		log.Info().Str("log", "/docker-dev/logs/goreman.log").Msg("Starting goreman")
+		log.Info().Str("log", fileLog).Msg("Starting code-server")
 		if err := cmd.Run(); err != nil {
-			log.Error().Err(err).Msg("Failed to run goreman")
+			log.Error().Err(err).Msg("Failed to run code-server")
 		}
 	}()
 

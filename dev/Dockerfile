@@ -93,7 +93,13 @@ RUN pacman -Sy jdk-openjdk maven gradle kotlin --noconfirm
 # rust
 RUN pacman -Syu rustup --noconfirm
 COPY ./dev/rust/config.toml /root/.cargo/config.toml
-RUN rustup default stable
+RUN sh -c "if [ -n \"$CHINA_MIRROR\" ]; then \
+                export RUSTUP_DIST_SERVER=https://rsproxy.cn; \
+                export RUSTUP_UPDATE_ROOT=https://rsproxy.cn/rustup; \
+                rustup default stable; \
+            else \
+                rustup default stable; \
+            fi"
 RUN cargo install cargo-watch
 ENV RUSTUP_DIST_SERVER="https://rsproxy.cn"
 ENV RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
