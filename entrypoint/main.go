@@ -13,8 +13,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-//go:embed code-server-config-template.yaml
-var codeServerConfigTemplate string
+const codeServerConfigTemplate string = `bind-addr: 0.0.0.0:%s
+auth: password
+password: %s
+cert: false`
 
 func main() {
 	goutils.InitZeroLog()
@@ -57,7 +59,12 @@ func main() {
 		log.Warn().Msg("CODE_SERVER_PASSWORD is not set, use default password")
 		codeServerPassword = "123456"
 	}
-	codeServerConfigText := fmt.Sprintf(codeServerConfigTemplate, codeServerPassword)
+	codeServerPort := os.Getenv("CODE_SERVER_PORT")
+	if codeServerPort == "" {
+		log.Warn().Msg("CODE_SERVER_PORT is not set, use default port 4444")
+		codeServerPort = "4444"
+	}
+	codeServerConfigText := fmt.Sprintf(codeServerConfigTemplate, codeServerPort, codeServerPassword)
 	err := goutils.WriteText(codeServerConfigPath, codeServerConfigText)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to write code-server config file")
