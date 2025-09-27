@@ -5,7 +5,7 @@ tasks:
     desc: "The default task" 
     # deps: [deploy]
     cmds:
-      - task: build-mainland
+      - task: build-dev-mainland
       
   build-mainland:
     desc: "Build the image in China Mainland"
@@ -20,4 +20,6 @@ tasks:
   build-dev-mainland:
     desc: "Build the dev image in China Mainland"
     cmds:
-      - docker build -t 117503445/dev -f ./dev/Dockerfile --build-arg CHINA_MIRROR=1 . --build-arg BASE_IMAGE=registry.cn-hangzhou.aliyuncs.com/117503445-mirror/sync:linux.amd64.docker.io.library.archlinux.latest
+      # - docker build -t 117503445/dev -f ./dev/Dockerfile --build-arg CHINA_MIRROR=1 . --build-arg BASE_IMAGE=registry.cn-hangzhou.aliyuncs.com/117503445-mirror/sync:linux.amd64.docker.io.library.archlinux.latest
+      - docker build -t 117503445/dev -f ./dev/Dockerfile --build-arg CHINA_MIRROR=1 .
+      - docker run -it --rm 117503445/dev

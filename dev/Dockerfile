@@ -18,7 +18,7 @@ RUN pacman-key --init && \
     pacman -Su --noconfirm
 
 # 安装所需软件包
-RUN pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task go zsh-autosuggestions zsh-syntax-highlighting podman skopeo umoci rust-analyzer --noconfirm
+RUN pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task go zsh-autosuggestions zsh-syntax-highlighting podman skopeo umoci --noconfirm
 
 # 添加用户 builder，并安装 yay AUR 助手
 RUN useradd -m -G wheel builder && \
@@ -91,7 +91,7 @@ RUN pacman -Sy jdk-openjdk maven gradle kotlin --noconfirm
 # RUN su - builder -c "yay -Su scala --noconfirm"
 
 # rust
-RUN pacman -Syu rustup --noconfirm
+RUN pacman -Syu rust-analyzer rustup --noconfirm
 COPY ./dev/rust/config.toml /root/.cargo/config.toml
 RUN sh -c "if [ -n \"$CHINA_MIRROR\" ]; then \
                 export RUSTUP_DIST_SERVER=https://rsproxy.cn; \
@@ -103,6 +103,7 @@ RUN sh -c "if [ -n \"$CHINA_MIRROR\" ]; then \
 RUN cargo install cargo-watch
 ENV RUSTUP_DIST_SERVER="https://rsproxy.cn"
 ENV RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
+ENV PATH="/root/.cargo/bin:$PATH"
 
 # typst
 # RUN pacman -Syu typst noto-fonts noto-fonts-cjk adobe-source-han-sans-cn-fonts noto-fonts-emoji ttf-ubuntu-font-family --noconfirm

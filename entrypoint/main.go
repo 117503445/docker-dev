@@ -84,6 +84,7 @@ func main() {
 		cmd.Stdout = file
 		cmd.Stderr = file
 		cmd.Dir = "/docker-dev"
+		cmd.Env = os.Environ()
 		log.Info().Str("log", fileLog).Msg("Starting code-server")
 		if err := cmd.Run(); err != nil {
 			log.Error().Err(err).Msg("Failed to run code-server")
@@ -92,7 +93,14 @@ func main() {
 
 	fileCustomEntrypoint := "/entrypoint"
 	if goutils.PathExists(fileCustomEntrypoint) {
-		goutils.Exec(fileCustomEntrypoint)
+		env := os.Environ()
+		envOption := goutils.WithEnv{}
+		for _, e := range os.Environ() {
+			pair := strings.SplitN(e, "=", 2)
+			env = append(env, pair[0]+"="+pair[1])
+		}
+
+		goutils.Exec(fileCustomEntrypoint, envOption)
 	}
 
 	var isTTY bool
@@ -111,6 +119,7 @@ func main() {
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stdout
+		cmd.Env = os.Environ()
 		// log.Debug().Msg("Enter zsh shell")
 		err := cmd.Run()
 		if err != nil {
