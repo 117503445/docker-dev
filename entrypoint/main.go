@@ -91,6 +91,14 @@ func main() {
 		}
 	}()
 
+	go func() {
+		cmd := exec.Command("/usr/sbin/sshd")
+		log.Info().Msg("Starting sshd")
+		if err := cmd.Run(); err != nil {
+			log.Error().Err(err).Msg("Failed to run sshd")
+		}
+	}()
+
 	fileCustomEntrypoint := "/entrypoint"
 	if goutils.PathExists(fileCustomEntrypoint) {
 		env := os.Environ()

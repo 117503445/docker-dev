@@ -120,4 +120,9 @@ WORKDIR /workspace
 RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 RUN go env -w GOPROXY=https://goproxy.cn,direct
 
+RUN curl https://wiki.117503445.top/linux/script/ssh.sh | bash
+RUN ssh-keygen -A
+
+ENV TZ=Asia/Shanghai
+
 ENTRYPOINT [ "/docker-dev/entrypoint" ]
