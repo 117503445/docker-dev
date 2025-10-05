@@ -75,6 +75,7 @@ RUN pacman -Syu poetry mypy rye uv --noconfirm
 RUN poetry config virtualenvs.in-project true
 RUN su - builder -c "yay -Su miniconda3 --noconfirm"
 COPY ./dev/python/.condarc /root/.condarc
+COPY ./dev/python/uv.toml /root/.config/uv/uv.toml
 
 # latex
 # RUN pacman -Syu texlive make gnu-free-fonts texlive-langchinese biber --noconfirm
