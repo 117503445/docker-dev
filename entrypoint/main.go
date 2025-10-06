@@ -22,36 +22,36 @@ func main() {
 	goutils.InitZeroLog()
 	goutils.ExecOpt.DumpOutput = true
 
-	replaceCodeServerAppName := func() {
-		// replace /usr/lib/code-server/out/node/routes/vscode.js
-		// name: appName -> name: "vsc"
-		f := "/usr/lib/code-server/out/node/routes/vscode.js"
+	// replaceCodeServerAppName := func() {
+	// 	// replace /usr/lib/code-server/out/node/routes/vscode.js
+	// 	// name: appName -> name: "vsc"
+	// 	f := "/usr/lib/code-server/out/node/routes/vscode.js"
 
-		old := "name: appName"
-		new := `name: "vsc"`
+	// 	old := "name: appName"
+	// 	new := `name: "vsc"`
 
-		log.Info().
-			Str("file", f).
-			Str("old", old).
-			Str("new", new).
-			Msg("Replace code-server app name")
-		if !goutils.FileExists(f) {
-			log.Warn().Str("file", f).Msg("vscode.js not exists")
-			return
-		}
-		content, err := goutils.ReadText(f)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to read code-server config file")
-			return
-		}
-		content = strings.ReplaceAll(content, "name: appName", `name: "vsc"`)
-		err = goutils.WriteText(f, content)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to write code-server config file")
-			return
-		}
-	}
-	replaceCodeServerAppName()
+	// 	log.Info().
+	// 		Str("file", f).
+	// 		Str("old", old).
+	// 		Str("new", new).
+	// 		Msg("Replace code-server app name")
+	// 	if !goutils.FileExists(f) {
+	// 		log.Warn().Str("file", f).Msg("vscode.js not exists")
+	// 		return
+	// 	}
+	// 	content, err := goutils.ReadText(f)
+	// 	if err != nil {
+	// 		log.Error().Err(err).Msg("Failed to read code-server config file")
+	// 		return
+	// 	}
+	// 	content = strings.ReplaceAll(content, "name: appName", `name: "vsc"`)
+	// 	err = goutils.WriteText(f, content)
+	// 	if err != nil {
+	// 		log.Error().Err(err).Msg("Failed to write code-server config file")
+	// 		return
+	// 	}
+	// }
+	// replaceCodeServerAppName()
 
 	codeServerConfigPath := "/root/.config/code-server/config.yaml"
 	codeServerPassword := os.Getenv("CODE_SERVER_PASSWORD")
