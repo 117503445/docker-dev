@@ -106,5 +106,9 @@ source $ZSH/oh-my-zsh.sh
 alias c="clear"
 alias arch-update="pacman -Sy archlinux-keyring --needed --noconfirm && pacman -Syu --noconfirm"
 alias cs="code-server"
+alias cr="cursor"
 alias task="go-task"
 alias t="go-task"
+
+# for
+source /root/.zshrc-custom
