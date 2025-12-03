@@ -124,6 +124,7 @@ RUN go env -w GOPROXY=https://goproxy.cn,direct
 RUN curl https://wiki.117503445.top/linux/script/ssh.sh | bash
 COPY ./dev/sshd/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key
 COPY ./dev/sshd/ssh_host_ed25519_key.pub /etc/ssh/ssh_host_ed25519_key.pub
+RUN chmod 600 /etc/ssh/ssh_host_ed25519_key
 
 ENV TZ=Asia/Shanghai
 
