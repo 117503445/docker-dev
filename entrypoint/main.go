@@ -93,7 +93,12 @@ func main() {
 
 	go func() {
 		cmd := exec.Command("/usr/sbin/sshd")
-		log.Info().Msg("Starting sshd")
+		if os.Getenv("SSHD_PORT") != "" {
+			cmd = exec.Command("/usr/sbin/sshd", "-p", os.Getenv("SSHD_PORT"))
+		}
+		log.Info().
+			Str("cmd", cmd.String()).
+			Msg("Starting sshd")
 		if err := cmd.Run(); err != nil {
 			log.Error().Err(err).Msg("Failed to run sshd")
 		}
