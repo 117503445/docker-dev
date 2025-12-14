@@ -131,5 +131,6 @@ RUN chmod 600 /etc/ssh/ssh_host_ed25519_key
 
 ENV TZ=Asia/Shanghai
 ENV DOCKER_BUILDKIT=1
+ENV PATH="/root/.local/bin:$PATH"
 
 ENTRYPOINT [ "/docker-dev/entrypoint" ]
