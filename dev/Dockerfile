@@ -29,7 +29,7 @@ RUN useradd -m -G wheel builder && \
 
 ENV PATH="/root/go/bin:${PATH}"
 RUN go env -w GOPROXY=direct
-RUN go install github.com/117503445/histmon@master && TOKEN="T" ENDPOINT="E" histmon install
+RUN go install github.com/117503445/histmon@master
 RUN go install github.com/117503445/vsc-init@master
 RUN su - builder -c "yay -Su code-server --noconfirm"
 EXPOSE 4444
@@ -61,6 +61,7 @@ RUN if [ -z "$CHINA_MIRROR" ]; then \
     fi
 COPY ./scripts/.zshrc /root/.zshrc
 RUN touch /root/.zshrc-custom
+RUN TOKEN="T" ENDPOINT="E" histmon install
 
 RUN go install github.com/cweill/gotests/gotests@latest && go install github.com/fatih/gomodifytags@latest && go install github.com/josharian/impl@latest && go install github.com/haya14busa/goplay/cmd/goplay@latest && go install github.com/go-delve/delve/cmd/dlv@latest && go install honnef.co/go/tools/cmd/staticcheck@latest && go install golang.org/x/tools/gopls@latest && go install github.com/ramya-rao-a/go-outline@latest
 RUN go install github.com/goreleaser/goreleaser/v2@latest
