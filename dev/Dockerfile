@@ -129,5 +129,6 @@ COPY ./dev/sshd/ssh_host_ed25519_key.pub /etc/ssh/ssh_host_ed25519_key.pub
 RUN chmod 600 /etc/ssh/ssh_host_ed25519_key
 
 ENV TZ=Asia/Shanghai
+ENV DOCKER_BUILDKIT=1
 
 ENTRYPOINT [ "/docker-dev/entrypoint" ]
