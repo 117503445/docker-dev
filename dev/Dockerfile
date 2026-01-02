@@ -18,7 +18,7 @@ RUN pacman-key --init && \
     pacman -Su --noconfirm
 
 # 安装所需软件包
-RUN pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task go zsh-autosuggestions zsh-syntax-highlighting podman skopeo umoci ncdu cloc fuse-overlayfs nvidia-container-toolkit --noconfirm
+RUN pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task go zsh-autosuggestions zsh-syntax-highlighting podman skopeo umoci ncdu cloc fuse-overlayfs nvidia-container-toolkit github-cli --noconfirm
 
 # 添加用户 builder，并安装 yay AUR 助手
 RUN useradd -m -G wheel builder && \
