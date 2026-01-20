@@ -31,7 +31,7 @@ ENV PATH="/root/go/bin:${PATH}"
 RUN go env -w GOPROXY=direct
 RUN go install github.com/117503445/histmon@master
 RUN go install github.com/117503445/vsc-init@master
-RUN su - builder -c "yay -Su code-server --noconfirm"
+RUN su - builder -c "yay -Su code-server claude-code --noconfirm"
 EXPOSE 4444
 RUN /root/go/bin/vsc-init
 
