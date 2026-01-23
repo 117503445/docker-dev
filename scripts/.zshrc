@@ -109,6 +109,13 @@ alias cs="code-server"
 alias cr="cursor"
 alias task="go-task"
 alias t="go-task"
+alias dcu="docker compose up"
+alias dcd="docker compose down"
+alias dcr="docker compose run"
+alias dcl="docker compose logs"
+alias dcp="docker compose pull"
+alias dc-update="docker compose pull && docker compose up -d"
+alias dkr="docker run --rm -it --entrypoint sh"
 
 # for
 source /root/.zshrc-custom
