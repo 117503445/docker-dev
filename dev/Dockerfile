@@ -18,7 +18,7 @@ RUN pacman-key --init && \
     pacman -Su --noconfirm
 
 # 安装所需软件包
-RUN pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task go zsh-autosuggestions zsh-syntax-highlighting podman skopeo umoci ncdu cloc fuse-overlayfs nvidia-container-toolkit github-cli --noconfirm
+RUN pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task go zsh-autosuggestions zsh-syntax-highlighting podman skopeo umoci ncdu cloc fuse-overlayfs nvidia-container-toolkit github-cli jq rsync kubectl helm unzip --noconfirm
 
 # 添加用户 builder，并安装 yay AUR 助手
 RUN useradd -m -G wheel builder && \
@@ -113,6 +113,10 @@ ENV PATH="/root/.cargo/bin:$PATH"
 # COPY typst/fonts /usr/share/fonts/docker-dev
 # ENV TYPST_FONT_PATHS=/usr/share/fonts
 # RUN wget https://github.com/Enter-tainer/typstyle/releases/latest/download/typstyle-x86_64-unknown-linux-gnu -o typstyle && chmod +x typstyle && mv typstyle /usr/bin/typstyle
+
+# aliyun
+RUN npm install @serverless-devs/s -g
+RUN wget https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd64.zip && unzip ossutil-v1.7.19-linux-amd64.zip && mv ossutil-v1.7.19-linux-amd64/ossutil /usr/local/bin/ && rm ossutil-v1.7.19-linux-amd64.zip ossutil-v1.7.19-linux-amd64/ossutil64 && rm -r ossutil-v1.7.19-linux-amd64
 
 RUN mkdir -p /docker-dev/logs
 COPY ./entrypoint /tmp/entrypoint
