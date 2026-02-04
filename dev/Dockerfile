@@ -95,7 +95,6 @@ RUN pacman -Sy jdk-openjdk maven gradle kotlin --noconfirm
 
 # rust
 RUN pacman -Syu rust-analyzer rustup --noconfirm
-COPY ./dev/rust/config.toml /root/.cargo/config.toml
 # RUN sh -c "if [ -n \"$CHINA_MIRROR\" ]; then \
 #                 export RUSTUP_DIST_SERVER=https://rsproxy.cn; \
 #                 export RUSTUP_UPDATE_ROOT=https://rsproxy.cn/rustup; \
@@ -108,6 +107,7 @@ RUN cargo install cargo-watch
 ENV RUSTUP_DIST_SERVER="https://rsproxy.cn"
 ENV RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
 ENV PATH="/root/.cargo/bin:$PATH"
+COPY ./dev/rust/config.toml /root/.cargo/config.toml
 
 # typst
 # RUN pacman -Syu typst noto-fonts noto-fonts-cjk adobe-source-han-sans-cn-fonts noto-fonts-emoji ttf-ubuntu-font-family --noconfirm
