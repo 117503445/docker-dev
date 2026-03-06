@@ -17,3 +17,9 @@ tasks:
     cmds:
       - docker build -t 117503445/dev-desktop -f ./images/dev-desktop/Dockerfile --build-arg CHINA_MIRROR=1 .
       - docker run -it --rm -p 44444:4444 -p 3000:3000 117503445/dev-desktop
+  
+  run-dev-desktop:
+    desc: "Run the dev-desktop image"
+    cmds:
+      - docker run -it --rm -p 44444:4444 -p 3000:3000 --entrypoint zsh 117503445/dev-desktop
+  

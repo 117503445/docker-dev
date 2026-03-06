@@ -104,6 +104,19 @@ func main() {
 		}
 	}()
 
+	// go func() {
+	// 	// if /init exists, run it
+	// 	if goutils.PathExists("/init") {
+	// 		log.Info().Msg("Running /init")
+	// 		result, err := goutils.Exec("/init")
+	// 		if err != nil {
+	// 			log.Error().Err(err).Msg("Failed to run /init")
+	// 		}else{
+	// 			log.Info().Interface("result", result).Msg("/init finished")
+	// 		}
+	// 	}
+	// }()
+
 	fileCustomEntrypoint := "/entrypoint"
 	if goutils.PathExists(fileCustomEntrypoint) {
 		env := os.Environ()

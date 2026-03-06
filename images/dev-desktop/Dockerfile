@@ -104,7 +104,7 @@ RUN pacman -Sy jdk-openjdk maven gradle kotlin --noconfirm
 # RUN su - builder -c "yay -Su scala --noconfirm"
 
 # rust
-RUN pacman -Syu rust-analyzer rustup --noconfirm
+RUN pacman -Syu rust-analyzer --noconfirm
 # RUN sh -c "if [ -n \"$CHINA_MIRROR\" ]; then \
 #                 export RUSTUP_DIST_SERVER=https://rsproxy.cn; \
 #                 export RUSTUP_UPDATE_ROOT=https://rsproxy.cn/rustup; \
@@ -112,7 +112,7 @@ RUN pacman -Syu rust-analyzer rustup --noconfirm
 #             else \
 #                 rustup default stable; \
 #             fi"
-RUN rustup default stable
+# RUN rustup default stable
 RUN cargo install cargo-watch
 ENV RUSTUP_DIST_SERVER="https://rsproxy.cn"
 ENV RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
@@ -128,6 +128,8 @@ COPY ./assets/rust/config.toml /root/.cargo/config.toml
 # aliyun
 RUN npm install @serverless-devs/s -g
 RUN wget https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd64.zip && unzip ossutil-v1.7.19-linux-amd64.zip && mv ossutil-v1.7.19-linux-amd64/ossutil /usr/local/bin/ && rm ossutil-v1.7.19-linux-amd64.zip ossutil-v1.7.19-linux-amd64/ossutil64 && rm -r ossutil-v1.7.19-linux-amd64
+
+RUN su - builder -c "yay -Su cursor-cli openai-codex-bin --noconfirm"
 
 RUN mkdir -p /docker-dev/logs
 COPY ./scripts/entrypoint /tmp/entrypoint
@@ -147,6 +149,11 @@ ENV TZ=Asia/Shanghai
 ENV DOCKER_BUILDKIT=1
 ENV PATH="/root/.local/bin:$PATH"
 
-RUN su - builder -c "yay -Su cursor-cli openai-codex-bin --noconfirm"
 
-ENTRYPOINT [ "/docker-dev/entrypoint" ]
+ENV ANTHROPIC_BASE_URL="https://coding.dashscope.aliyuncs.com/apps/anthropic"
+ENV ANTHROPIC_MODEL="glm-5"
+ENV API_TIMEOUT_MS="3000000"
+ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1"
+COPY ./assets/claude/settings.json /root/.claude/settings.json
+
+# ENTRYPOINT [ "/docker-dev/entrypoint" ]
