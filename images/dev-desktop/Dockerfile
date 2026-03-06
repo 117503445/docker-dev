@@ -6,8 +6,7 @@ LABEL maintainer="117503445"
 USER root
 
 ENV LC_ALL=zh_CN.UTF-8
-# TODO
-# RUN locale-gen
+RUN locale-gen
 ENV TZ=Asia/Shanghai
 
 # 根据是否存在 $CHINA_MIRROR 环境变量设置软件源
@@ -155,5 +154,12 @@ ENV ANTHROPIC_MODEL="glm-5"
 ENV API_TIMEOUT_MS="3000000"
 ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1"
 COPY ./assets/claude/settings.json /root/.claude/settings.json
+
+# 修复 nginx fancyindex 模块版本不匹配问题 - 通过 s6 custom-init 脚本在运行时修复
+RUN rm -f /etc/nginx/modules.d/fancy.conf || true && \
+    mkdir -p /custom-cont-init.d && \
+    echo '#!/bin/bash' > /custom-cont-init.d/99-fix-nginx && \
+    echo 'sed -i "s/^\s*fancyindex/#fancyindex/g" /etc/nginx/conf.d/default.conf 2>/dev/null || true' >> /custom-cont-init.d/99-fix-nginx && \
+    chmod +x /custom-cont-init.d/99-fix-nginx
 
 # ENTRYPOINT [ "/docker-dev/entrypoint" ]
