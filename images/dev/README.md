@@ -1,1 +1,0 @@
-docker build -t dev -f dev/Dockerfile .

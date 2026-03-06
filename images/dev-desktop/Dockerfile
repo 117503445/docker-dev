@@ -1,7 +1,14 @@
-ARG BASE_IMAGE=archlinux
+ARG BASE_IMAGE=lscr.io/linuxserver/webtop:arch-kde
 
 FROM $BASE_IMAGE
 LABEL maintainer="117503445"
+
+USER root
+
+ENV LC_ALL=zh_CN.UTF-8
+# TODO
+# RUN locale-gen
+ENV TZ=Asia/Shanghai
 
 # 根据是否存在 $CHINA_MIRROR 环境变量设置软件源
 ARG CHINA_MIRROR
@@ -29,6 +36,8 @@ RUN useradd -m -G wheel builder && \
 
 ENV PATH="/root/go/bin:${PATH}"
 RUN go env -w GOPROXY=direct
+# set gopath
+RUN go env -w GOPATH=/root/go
 RUN go install github.com/117503445/histmon@master
 RUN go install github.com/117503445/vsc-init@master
 RUN su - builder -c "yay -Su code-server claude-code --noconfirm"
