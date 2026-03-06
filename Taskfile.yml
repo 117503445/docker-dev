@@ -9,5 +9,5 @@ tasks:
   build-mainland:
     desc: "Build the dev image in China Mainland"
     cmds:
-      - docker build -t 117503445/dev -f ./dev/Dockerfile --build-arg CHINA_MIRROR=1 .
+      - docker build -t 117503445/dev -f ./images/dev/Dockerfile --build-arg CHINA_MIRROR=1 .
       - docker run -it --rm 117503445/dev

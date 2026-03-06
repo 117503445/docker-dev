@@ -59,7 +59,7 @@ RUN if [ -z "$CHINA_MIRROR" ]; then \
     else \
       sh -c "$(curl -fsSL https://install.ohmyz.sh)"; \
     fi
-COPY ./scripts/.zshrc /root/.zshrc
+COPY ./assets/.zshrc /root/.zshrc
 RUN touch /root/.zshrc-custom
 RUN TOKEN="T" ENDPOINT="E" histmon install
 
@@ -76,8 +76,8 @@ RUN pnpm config set registry https://registry.npmmirror.com
 RUN pacman -Syu poetry mypy rye uv --noconfirm
 RUN poetry config virtualenvs.in-project true
 RUN su - builder -c "yay -Su miniconda3 --noconfirm"
-COPY ./dev/python/.condarc /root/.condarc
-COPY ./dev/python/uv.toml /root/.config/uv/uv.toml
+COPY ./assets/python/.condarc /root/.condarc
+COPY ./assets/python/uv.toml /root/.config/uv/uv.toml
 
 # latex
 # RUN pacman -Syu texlive make gnu-free-fonts texlive-langchinese biber --noconfirm
@@ -107,7 +107,7 @@ RUN cargo install cargo-watch
 ENV RUSTUP_DIST_SERVER="https://rsproxy.cn"
 ENV RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
 ENV PATH="/root/.cargo/bin:$PATH"
-COPY ./dev/rust/config.toml /root/.cargo/config.toml
+COPY ./assets/rust/config.toml /root/.cargo/config.toml
 
 # typst
 # RUN pacman -Syu typst noto-fonts noto-fonts-cjk adobe-source-han-sans-cn-fonts noto-fonts-emoji ttf-ubuntu-font-family --noconfirm
@@ -120,7 +120,7 @@ RUN npm install @serverless-devs/s -g
 RUN wget https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd64.zip && unzip ossutil-v1.7.19-linux-amd64.zip && mv ossutil-v1.7.19-linux-amd64/ossutil /usr/local/bin/ && rm ossutil-v1.7.19-linux-amd64.zip ossutil-v1.7.19-linux-amd64/ossutil64 && rm -r ossutil-v1.7.19-linux-amd64
 
 RUN mkdir -p /docker-dev/logs
-COPY ./entrypoint /tmp/entrypoint
+COPY ./scripts/entrypoint /tmp/entrypoint
 RUN cd /tmp/entrypoint && cp Procfile /docker-dev/Procfile && go build . && cp ./entrypoint /docker-dev/entrypoint && rm -rf /tmp/entrypoint
 
 WORKDIR /workspace
@@ -129,8 +129,8 @@ RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /et
 RUN go env -w GOPROXY=https://goproxy.cn,direct
 
 RUN curl https://wiki.117503445.top/linux/script/ssh.sh | bash
-COPY ./dev/sshd/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key
-COPY ./dev/sshd/ssh_host_ed25519_key.pub /etc/ssh/ssh_host_ed25519_key.pub
+COPY ./assets/sshd/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key
+COPY ./assets/sshd/ssh_host_ed25519_key.pub /etc/ssh/ssh_host_ed25519_key.pub
 RUN chmod 600 /etc/ssh/ssh_host_ed25519_key
 
 ENV TZ=Asia/Shanghai
