@@ -1,0 +1,1 @@
+code-server: PORT=4444 /usr/sbin/bash /usr/sbin/code-server --bind-addr 0.0.0.0:4444 > /docker-dev/logs/code-server.log 2>&1

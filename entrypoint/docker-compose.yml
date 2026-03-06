@@ -1,0 +1,15 @@
+services:
+  entrypoint-dev:
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev
+    volumes:
+        - ./:/workspace
+        - ~/.vscode-server/bin:/root/.vscode-server/bin
+        - entrypoint-dev-vsc:/root/.vscode-server/extensions
+    stdin_open: true
+    tty: true
+    init: true
+
+volumes:
+  entrypoint-dev-vsc:
