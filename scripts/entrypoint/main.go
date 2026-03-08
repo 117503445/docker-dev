@@ -21,6 +21,7 @@ cert: false`
 func main() {
 	goutils.InitZeroLog()
 	goutils.ExecOpt.DumpOutput = true
+	log.Info().Msg("Starting entrypoint")
 
 	// replaceCodeServerAppName := func() {
 	// 	// replace /usr/lib/code-server/out/node/routes/vscode.js
@@ -53,7 +54,11 @@ func main() {
 	// }
 	// replaceCodeServerAppName()
 
+	// 检测 code-server 配置路径 (兼容 linuxserver 镜像的 /config 目录)
 	codeServerConfigPath := "/root/.config/code-server/config.yaml"
+	if goutils.PathExists("/config") {
+		codeServerConfigPath = "/config/.config/code-server/config.yaml"
+	}
 	codeServerPassword := os.Getenv("CODE_SERVER_PASSWORD")
 	if codeServerPassword == "" {
 		log.Warn().Msg("CODE_SERVER_PASSWORD is not set, use default password")
@@ -67,14 +72,14 @@ func main() {
 	codeServerConfigText := fmt.Sprintf(codeServerConfigTemplate, codeServerPort, codeServerPassword)
 	err := goutils.WriteText(codeServerConfigPath, codeServerConfigText)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to write code-server config file")
+		log.Panic().Err(err).Msg("Failed to write code-server config file")
 	}
 
 	go func() {
 		fileLog := "/docker-dev/logs/code-server.log"
 		file, err := os.OpenFile(fileLog, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to open file")
+			log.Error().Err(err).Msg("Failed to open log file, code-server will not start")
 			return
 		}
 		defer file.Close()
@@ -133,7 +138,7 @@ func main() {
 	if isatty.IsTerminal(os.Stdout.Fd()) {
 		isTTY = true
 	} else if isatty.IsCygwinTerminal(os.Stdout.Fd()) {
-		log.Fatal().Msg("Cygwin terminal is not supported")
+		log.Panic().Msg("Cygwin terminal is not supported")
 	} else {
 		isTTY = false
 	}
@@ -153,6 +158,8 @@ func main() {
 		}
 		// log.Debug().Msg("Exit zsh shell")
 	} else {
-		goutils.Exec("tail -f /dev/null")
+		// 保持进程运行，防止 s6-overlay 不断重启
+		log.Info().Msg("Running in non-TTY mode, waiting forever...")
+		select {}
 	}
 }

@@ -5,8 +5,8 @@ LABEL maintainer="117503445"
 
 USER root
 
+RUN sed -i 's/^#zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen && locale-gen
 ENV LC_ALL=zh_CN.UTF-8
-RUN locale-gen
 ENV TZ=Asia/Shanghai
 
 # 根据是否存在 $CHINA_MIRROR 环境变量设置软件源
@@ -131,8 +131,6 @@ RUN wget https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd6
 RUN su - builder -c "yay -Su cursor-cli openai-codex-bin --noconfirm"
 
 RUN mkdir -p /docker-dev/logs
-COPY ./scripts/entrypoint /tmp/entrypoint
-RUN cd /tmp/entrypoint && cp Procfile /docker-dev/Procfile && go build . && cp ./entrypoint /docker-dev/entrypoint && rm -rf /tmp/entrypoint
 
 WORKDIR /workspace
 
@@ -162,4 +160,10 @@ RUN rm -f /etc/nginx/modules.d/fancy.conf || true && \
     echo 'sed -i "s/^\s*fancyindex/#fancyindex/g" /etc/nginx/conf.d/default.conf 2>/dev/null || true' >> /custom-cont-init.d/99-fix-nginx && \
     chmod +x /custom-cont-init.d/99-fix-nginx
 
-# ENTRYPOINT [ "/docker-dev/entrypoint" ]
+COPY ./scripts/entrypoint /tmp/entrypoint
+RUN cd /tmp/entrypoint && cp Procfile /docker-dev/Procfile && go build . && cp ./entrypoint /docker-dev/entrypoint && rm -rf /tmp/entrypoint
+
+# 配置 custom service 启动 /docker-dev/entrypoint (linuxserver 镜像推荐方式)
+RUN mkdir -p /custom-services.d && \
+    printf '#!/usr/bin/with-contenv bash\nexec /docker-dev/entrypoint\n' > /custom-services.d/docker-dev-entrypoint && \
+    chmod +x /custom-services.d/docker-dev-entrypoint
