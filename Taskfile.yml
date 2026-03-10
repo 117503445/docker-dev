@@ -15,8 +15,9 @@ tasks:
   build-dev-desktop:
     desc: "Build the dev-desktop image in China Mainland"
     cmds:
-      - docker build -t 117503445/dev-desktop -f ./images/dev-desktop/Dockerfile --build-arg CHINA_MIRROR=1 .
-      - docker run --rm -p 44444:4444 -p 3000:3000 117503445/dev-desktop
+      - docker build -t 117503445/dev-desktop -f ./images/dev-desktop/Dockerfile --build-arg CHINA_MIRROR=1 --progress=plain .
+      - docker rm -f dev-desktop || true
+      - docker run --rm -p 44444:4444 -p 3000:3000 --name dev-desktop 117503445/dev-desktop
   
   run-dev-desktop:
     desc: "Run the dev-desktop image"

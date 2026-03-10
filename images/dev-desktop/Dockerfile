@@ -3,10 +3,10 @@ ARG BASE_IMAGE=lscr.io/linuxserver/webtop:arch-kde
 FROM $BASE_IMAGE
 LABEL maintainer="117503445"
 
-USER root
+RUN locale-gen en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
 
-RUN sed -i 's/^#zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen && locale-gen
-ENV LC_ALL=zh_CN.UTF-8
 ENV TZ=Asia/Shanghai
 
 # 根据是否存在 $CHINA_MIRROR 环境变量设置软件源
@@ -23,6 +23,13 @@ RUN pacman-key --init && \
     pacman -Sy archlinux-keyring --noconfirm && \
     pacman -Su --noconfirm
 
+# 修复 nginx fancyindex 模块版本不匹配问题 - 通过 s6 custom-init 脚本在运行时修复
+RUN rm -f /etc/nginx/modules.d/fancy.conf || true && \
+    mkdir -p /custom-cont-init.d && \
+    echo '#!/bin/bash' > /custom-cont-init.d/99-fix-nginx && \
+    echo 'sed -i "s/^\s*fancyindex/#fancyindex/g" /etc/nginx/conf.d/default.conf 2>/dev/null || true' >> /custom-cont-init.d/99-fix-nginx && \
+    chmod +x /custom-cont-init.d/99-fix-nginx
+
 # 安装所需软件包
 RUN pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task go zsh-autosuggestions zsh-syntax-highlighting podman skopeo umoci ncdu cloc fuse-overlayfs nvidia-container-toolkit github-cli jq rsync kubectl helm unzip --noconfirm
 
@@ -33,15 +40,16 @@ RUN useradd -m -G wheel builder && \
     su - builder -c "cd /tmp && git clone https://aur.archlinux.org/yay-bin.git && cd yay-bin && makepkg -si --noconfirm" && \
     rm -rf /tmp/yay
 
-ENV PATH="/root/go/bin:${PATH}"
-RUN go env -w GOPROXY=direct
-# set gopath
-RUN go env -w GOPATH=/root/go
+ENV HOME=/config
+ENV PATH="$HOME/go/bin:${PATH}"
+# # set gopath
+# RUN go env -w GOPROXY=direct
+RUN go env -w GOPATH=$HOME/go
 RUN go install github.com/117503445/histmon@master
 RUN go install github.com/117503445/vsc-init@master
-RUN su - builder -c "yay -Su code-server claude-code --noconfirm"
+RUN su - builder -c "yay -Su code-server claude-code cursor-cli openai-codex-bin --noconfirm"
 EXPOSE 4444
-RUN /root/go/bin/vsc-init
+RUN $HOME/go/bin/vsc-init
 
 # 如果设置了 $CHINA_MIRROR 环境变量，则配置go代理
 RUN if [ -n "$CHINA_MIRROR" ]; then \
@@ -67,11 +75,12 @@ RUN if [ -z "$CHINA_MIRROR" ]; then \
     else \
       sh -c "$(curl -fsSL https://install.ohmyz.sh)"; \
     fi
-COPY ./assets/.zshrc /root/.zshrc
-RUN touch /root/.zshrc-custom
+COPY ./assets/.zshrc /tmp/.zshrc
+RUN mv /tmp/.zshrc $HOME/.zshrc
+RUN touch $HOME/.zshrc-custom
 RUN TOKEN="T" ENDPOINT="E" histmon install
 
-RUN go install github.com/cweill/gotests/gotests@latest && go install github.com/fatih/gomodifytags@latest && go install github.com/josharian/impl@latest && go install github.com/haya14busa/goplay/cmd/goplay@latest && go install github.com/go-delve/delve/cmd/dlv@latest && go install honnef.co/go/tools/cmd/staticcheck@latest && go install golang.org/x/tools/gopls@latest && go install github.com/ramya-rao-a/go-outline@latest && go install github.com/goreleaser/goreleaser/v2@latest && go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 && go install -v github.com/incu6us/goimports-reviser/v3@latest && go install github.com/bufbuild/buf/cmd/buf@latest && go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest && go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest && rm -rf /root/.cache /root/go/pkg
+RUN go install github.com/cweill/gotests/gotests@latest && go install github.com/fatih/gomodifytags@latest && go install github.com/josharian/impl@latest && go install github.com/haya14busa/goplay/cmd/goplay@latest && go install github.com/go-delve/delve/cmd/dlv@latest && go install honnef.co/go/tools/cmd/staticcheck@latest && go install golang.org/x/tools/gopls@latest && go install github.com/ramya-rao-a/go-outline@latest && go install github.com/goreleaser/goreleaser/v2@latest && go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 && go install -v github.com/incu6us/goimports-reviser/v3@latest && go install github.com/bufbuild/buf/cmd/buf@latest && go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest && go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest && rm -rf $HOME/.cache $HOME/go/pkg
 
 # front
 RUN pacman -Syu npm yarn pnpm --noconfirm
@@ -81,16 +90,13 @@ RUN yarn global add typescript
 RUN pnpm config set registry https://registry.npmmirror.com
 
 # python
-# RUN pacman -Syu poetry mypy rye uv --noconfirm
 RUN pacman -Syu uv --noconfirm
-# RUN poetry config virtualenvs.in-project true
-# RUN su - builder -c "yay -Su miniconda3 --noconfirm"
-# COPY ./assets/python/.condarc /root/.condarc
-COPY ./assets/python/uv.toml /root/.config/uv/uv.toml
+COPY ./assets/python/uv.toml /tmp/uv.toml
+RUN mkdir -p $HOME/.config/uv && mv /tmp/uv.toml $HOME/.config/uv/uv.toml
 
 # latex
 # RUN pacman -Syu texlive make gnu-free-fonts texlive-langchinese biber --noconfirm
-# RUN git clone https://github.com/Haixing-Hu/latex-chinese-fonts.git /usr/share/fonts/latex-chinese-fonts --depth=1
+RUN git clone https://github.com/Haixing-Hu/latex-chinese-fonts.git /usr/share/fonts/latex-chinese-fonts --depth=1
 
 # cpp
 RUN pacman -Syu gcc clang cmake --noconfirm
@@ -102,7 +108,7 @@ RUN pacman -Syu --noconfirm dotnet-runtime dotnet-sdk aspnet-runtime
 RUN pacman -Sy jdk-openjdk maven gradle kotlin --noconfirm
 # RUN su - builder -c "yay -Su scala --noconfirm"
 
-# rust
+# # rust
 RUN pacman -Syu rust-analyzer --noconfirm
 # RUN sh -c "if [ -n \"$CHINA_MIRROR\" ]; then \
 #                 export RUSTUP_DIST_SERVER=https://rsproxy.cn; \
@@ -115,27 +121,23 @@ RUN pacman -Syu rust-analyzer --noconfirm
 RUN cargo install cargo-watch
 ENV RUSTUP_DIST_SERVER="https://rsproxy.cn"
 ENV RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
-ENV PATH="/root/.cargo/bin:$PATH"
-COPY ./assets/rust/config.toml /root/.cargo/config.toml
+ENV PATH="$HOME/.cargo/bin:${PATH}"
+COPY ./assets/rust/config.toml /tmp/cargo-config.toml
+RUN mkdir -p $HOME/.cargo && mv /tmp/cargo-config.toml $HOME/.cargo/config.toml
 
 # typst
-# RUN pacman -Syu typst noto-fonts noto-fonts-cjk adobe-source-han-sans-cn-fonts noto-fonts-emoji ttf-ubuntu-font-family --noconfirm
+RUN pacman -Syu typst noto-fonts noto-fonts-cjk adobe-source-han-sans-cn-fonts noto-fonts-emoji ttf-ubuntu-font-family --noconfirm
 # COPY typst/fonts /usr/share/fonts/docker-dev
-# ENV TYPST_FONT_PATHS=/usr/share/fonts
-# RUN wget https://github.com/Enter-tainer/typstyle/releases/latest/download/typstyle-x86_64-unknown-linux-gnu -o typstyle && chmod +x typstyle && mv typstyle /usr/bin/typstyle
+ENV TYPST_FONT_PATHS=/usr/share/fonts
+RUN wget https://github.com/Enter-tainer/typstyle/releases/latest/download/typstyle-x86_64-unknown-linux-gnu -o typstyle && chmod +x typstyle && mv typstyle /usr/bin/typstyle
 
 # aliyun
 RUN npm install @serverless-devs/s -g
 RUN wget https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd64.zip && unzip ossutil-v1.7.19-linux-amd64.zip && mv ossutil-v1.7.19-linux-amd64/ossutil /usr/local/bin/ && rm ossutil-v1.7.19-linux-amd64.zip ossutil-v1.7.19-linux-amd64/ossutil64 && rm -r ossutil-v1.7.19-linux-amd64
 
-RUN su - builder -c "yay -Su cursor-cli openai-codex-bin --noconfirm"
-
 RUN mkdir -p /docker-dev/logs
 
 WORKDIR /workspace
-
-RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
-RUN go env -w GOPROXY=https://goproxy.cn,direct
 
 RUN curl https://wiki.117503445.top/linux/script/ssh.sh | bash
 COPY ./assets/sshd/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key
@@ -144,26 +146,22 @@ RUN chmod 600 /etc/ssh/ssh_host_ed25519_key
 
 ENV TZ=Asia/Shanghai
 ENV DOCKER_BUILDKIT=1
-ENV PATH="/root/.local/bin:$PATH"
-
+ENV PATH="$HOME/.local/bin:${PATH}"
 
 ENV ANTHROPIC_BASE_URL="https://coding.dashscope.aliyuncs.com/apps/anthropic"
 ENV ANTHROPIC_MODEL="glm-5"
 ENV API_TIMEOUT_MS="3000000"
 ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1"
-COPY ./assets/claude/settings.json /root/.claude/settings.json
-
-# 修复 nginx fancyindex 模块版本不匹配问题 - 通过 s6 custom-init 脚本在运行时修复
-RUN rm -f /etc/nginx/modules.d/fancy.conf || true && \
-    mkdir -p /custom-cont-init.d && \
-    echo '#!/bin/bash' > /custom-cont-init.d/99-fix-nginx && \
-    echo 'sed -i "s/^\s*fancyindex/#fancyindex/g" /etc/nginx/conf.d/default.conf 2>/dev/null || true' >> /custom-cont-init.d/99-fix-nginx && \
-    chmod +x /custom-cont-init.d/99-fix-nginx
+COPY ./assets/claude/settings.json /tmp/claude-settings.json
+RUN mkdir -p $HOME/.claude && mv /tmp/claude-settings.json $HOME/.claude/settings.json
 
 COPY ./scripts/entrypoint /tmp/entrypoint
 RUN cd /tmp/entrypoint && cp Procfile /docker-dev/Procfile && go build . && cp ./entrypoint /docker-dev/entrypoint && rm -rf /tmp/entrypoint
 
 # 配置 custom service 启动 /docker-dev/entrypoint (linuxserver 镜像推荐方式)
-RUN mkdir -p /custom-services.d && \
-    printf '#!/usr/bin/with-contenv bash\nexec /docker-dev/entrypoint\n' > /custom-services.d/docker-dev-entrypoint && \
-    chmod +x /custom-services.d/docker-dev-entrypoint
+# RUN mkdir -p /custom-services.d && \
+#     printf '#!/usr/bin/with-contenv bash\nexec /docker-dev/entrypoint\n' > /custom-services.d/docker-dev-entrypoint && \
+#     chmod +x /custom-services.d/docker-dev-entrypoint
+
+# RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
+# RUN go env -w GOPROXY=https://goproxy.cn,direct
