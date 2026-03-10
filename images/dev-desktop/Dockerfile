@@ -155,13 +155,12 @@ ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1"
 COPY ./assets/claude/settings.json /tmp/claude-settings.json
 RUN mkdir -p $HOME/.claude && mv /tmp/claude-settings.json $HOME/.claude/settings.json
 
-COPY ./scripts/entrypoint /tmp/entrypoint
-RUN cd /tmp/entrypoint && cp Procfile /docker-dev/Procfile && go build . && cp ./entrypoint /docker-dev/entrypoint && rm -rf /tmp/entrypoint
+COPY ./scripts/entrypoint/entrypoint /docker-dev/entrypoint
 
 # 配置 custom service 启动 /docker-dev/entrypoint (linuxserver 镜像推荐方式)
-# RUN mkdir -p /custom-services.d && \
-#     printf '#!/usr/bin/with-contenv bash\nexec /docker-dev/entrypoint\n' > /custom-services.d/docker-dev-entrypoint && \
-#     chmod +x /custom-services.d/docker-dev-entrypoint
+RUN mkdir -p /custom-services.d && \
+    printf '#!/usr/bin/with-contenv bash\nexec /docker-dev/entrypoint\n' > /custom-services.d/docker-dev-entrypoint && \
+    chmod +x /custom-services.d/docker-dev-entrypoint
 
-# RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
-# RUN go env -w GOPROXY=https://goproxy.cn,direct
+RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
+RUN go env -w GOPROXY=https://goproxy.cn,direct
