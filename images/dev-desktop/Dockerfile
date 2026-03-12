@@ -3,6 +3,11 @@ ARG BASE_IMAGE=lscr.io/linuxserver/webtop:arch-kde
 FROM $BASE_IMAGE
 LABEL maintainer="117503445"
 
+USER root
+ENV PUID=0
+ENV GUID=0
+ENV HOME=/root
+
 RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
@@ -40,16 +45,15 @@ RUN useradd -m -G wheel builder && \
     su - builder -c "cd /tmp && git clone https://aur.archlinux.org/yay-bin.git && cd yay-bin && makepkg -si --noconfirm" && \
     rm -rf /tmp/yay
 
-ENV HOME=/config
 ENV PATH="$HOME/go/bin:${PATH}"
 # # set gopath
 # RUN go env -w GOPROXY=direct
 RUN go env -w GOPATH=$HOME/go
 RUN go install github.com/117503445/histmon@master
-RUN go install github.com/117503445/vsc-init@master
 RUN su - builder -c "yay -Su code-server claude-code cursor-cli openai-codex-bin --noconfirm"
+RUN GOPROXY=direct go install github.com/117503445/vsc-init@master
+# RUN $HOME/go/bin/vsc-init
 EXPOSE 4444
-RUN $HOME/go/bin/vsc-init
 
 # 如果设置了 $CHINA_MIRROR 环境变量，则配置go代理
 RUN if [ -n "$CHINA_MIRROR" ]; then \
