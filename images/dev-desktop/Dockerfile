@@ -52,7 +52,7 @@ RUN go env -w GOPATH=$HOME/go
 RUN go install github.com/117503445/histmon@master
 RUN su - builder -c "yay -Su code-server claude-code cursor-cli openai-codex-bin --noconfirm"
 RUN GOPROXY=direct go install github.com/117503445/vsc-init@master
-# RUN $HOME/go/bin/vsc-init
+RUN $HOME/go/bin/vsc-init
 EXPOSE 4444
 
 # 如果设置了 $CHINA_MIRROR 环境变量，则配置go代理
