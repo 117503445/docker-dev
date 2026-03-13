@@ -168,3 +168,45 @@ RUN mkdir -p /custom-services.d && \
 
 RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 RUN go env -w GOPROXY=https://goproxy.cn,direct
+
+# 创建 KDE 桌面模板文件，使右键菜单可以创建新文件
+RUN mkdir -p $HOME/Templates && \
+    touch "$HOME/Templates/Text File.txt" && \
+    touch "$HOME/Templates/Empty File"
+
+# 配置 abc 用户以 root 权限运行桌面，并设置桌面路径为 /root/Desktop
+# LinuxServer 镜像使用 abc 用户运行桌面环境，需要修改其 home 目录
+RUN usermod -d /root abc && \
+    mkdir -p /root/Desktop && \
+    chown -R abc:abc /root && \
+    chmod 755 /root /root/Desktop
+
+# 配置 KDE Plasma 桌面 Folder View 显示 /root/Desktop 内容
+# 创建 KDE autostart 脚本，在桌面启动后修复配置
+RUN mkdir -p /root/.config/autostart /usr/local/bin && \
+    printf '#!/bin/bash\n\
+CONFIG="/root/.config/plasma-org.kde.plasma.desktop-appletsrc"\n\
+sleep 3\n\
+\n\
+if [ -f "$CONFIG" ] && ! grep -q "url=/root/Desktop" "$CONFIG"; then\n\
+  if ! grep -q "plugin=org.kde.plasma.folder" "$CONFIG"; then\n\
+    sed -i "/^\\[Containments\\]\\[1\\]$/a plugin=org.kde.plasma.folder" "$CONFIG"\n\
+  fi\n\
+  \n\
+  if ! grep -q "\\[Containments\\]\\[1\\]\\[General\\]" "$CONFIG"; then\n\
+    echo "" >> "$CONFIG"\n\
+    echo "[Containments][1][General]" >> "$CONFIG"\n\
+    echo "url=/root/Desktop" >> "$CONFIG"\n\
+  else\n\
+    sed -i "/^\\[Containments\\]\\[1\\]\\[General\\]$/a url=/root/Desktop" "$CONFIG"\n\
+  fi\n\
+  \n\
+  chown abc:abc "$CONFIG"\n\
+  kquitapp6 plasmashell 2>/dev/null || pkill plasmashell\n\
+  sleep 1\n\
+  kstart plasmashell\n\
+fi\n\
+' > /usr/local/bin/fix-desktop-url.sh && \
+    chmod +x /usr/local/bin/fix-desktop-url.sh && \
+    printf '[Desktop Entry]\nType=Application\nName=Fix Desktop URL\nExec=/usr/local/bin/fix-desktop-url.sh\nX-KDE-autostart-phase=2\nOnlyShowIn=KDE;\n' > /root/.config/autostart/fix-desktop-url.desktop && \
+    chown -R abc:abc /root/.config/autostart
