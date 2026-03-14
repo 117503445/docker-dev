@@ -1,0 +1,8 @@
+version: '3'
+
+tasks:
+  default:
+    desc: "The default task" 
+    cmds:
+      - CGO_ENABLED=0 go build -o vsci main.go
+      - docker compose exec dev ./vsci

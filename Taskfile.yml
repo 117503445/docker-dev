@@ -15,7 +15,6 @@ tasks:
   build-dev-desktop:
     desc: "Build the dev-desktop image in China Mainland"
     cmds:
-      - cd scripts/entrypoint && CGO_ENABLED=0 go build -o .
       - docker build -t 117503445/dev-desktop -f ./images/dev-desktop/Dockerfile --build-arg CHINA_MIRROR=1 --progress=plain .
 
   run-dev-desktop:

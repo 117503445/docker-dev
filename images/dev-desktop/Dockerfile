@@ -45,14 +45,26 @@ RUN useradd -m -G wheel builder && \
     su - builder -c "cd /tmp && git clone https://aur.archlinux.org/yay-bin.git && cd yay-bin && makepkg -si --noconfirm" && \
     rm -rf /tmp/yay
 
+# ============================================
+# Build Go binaries (entrypoint and vsc-init)
+# ============================================
 ENV PATH="$HOME/go/bin:${PATH}"
-# # set gopath
-# RUN go env -w GOPROXY=direct
 RUN go env -w GOPATH=$HOME/go
+
+# Build entrypoint
+COPY ./scripts/entrypoint/ /tmp/entrypoint/
+RUN cd /tmp/entrypoint && go mod download && CGO_ENABLED=0 go build -ldflags="-s -w" -o /docker-dev/entrypoint . && rm -rf /tmp/entrypoint
+
+# Build vsc-init
+COPY ./scripts/vsc-init/ /tmp/vsc-init/
+RUN cd /tmp/vsc-init && go mod download && CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/local/bin/vsc-init . && rm -rf /tmp/vsc-init
+
+# Install other Go tools
 RUN go install github.com/117503445/histmon@master
 RUN su - builder -c "yay -Su code-server claude-code cursor-cli openai-codex-bin --noconfirm"
-RUN GOPROXY=direct go install github.com/117503445/vsc-init@master
-RUN $HOME/go/bin/vsc-init
+
+# Run vsc-init to install VS Code extensions
+RUN /usr/local/bin/vsc-init
 EXPOSE 4444
 
 # 如果设置了 $CHINA_MIRROR 环境变量，则配置go代理
@@ -73,7 +85,6 @@ RUN go install github.com/ycd/dstp/cmd/dstp@latest
 
 # 更改默认 shell 为 zsh
 RUN chsh -s /usr/bin/zsh
-# RUN su - builder -c "yay -Su --noconfirm oh-my-zsh-git"
 RUN if [ -z "$CHINA_MIRROR" ]; then \
       sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"; \
     else \
@@ -99,8 +110,7 @@ COPY ./assets/python/uv.toml /tmp/uv.toml
 RUN mkdir -p $HOME/.config/uv && mv /tmp/uv.toml $HOME/.config/uv/uv.toml
 
 # latex
-# RUN pacman -Syu texlive make gnu-free-fonts texlive-langchinese biber --noconfirm
-RUN git clone https://github.com/Haixing-Hu/latex-chinese-fonts.git /usr/share/fonts/latex-chinese-fonts --depth=1
+RUN git clone https://github.com/Haixing-Hu/latex-chinese-fonts.git /usr/share/fonts/latex-chinese-fonts --depth=1 || echo "Warning: Failed to clone latex fonts"
 
 # cpp
 RUN pacman -Syu gcc clang cmake --noconfirm
@@ -110,18 +120,9 @@ RUN pacman -Syu --noconfirm dotnet-runtime dotnet-sdk aspnet-runtime
 
 # java
 RUN pacman -Sy jdk-openjdk maven gradle kotlin --noconfirm
-# RUN su - builder -c "yay -Su scala --noconfirm"
 
-# # rust
+# rust
 RUN pacman -Syu rust-analyzer --noconfirm
-# RUN sh -c "if [ -n \"$CHINA_MIRROR\" ]; then \
-#                 export RUSTUP_DIST_SERVER=https://rsproxy.cn; \
-#                 export RUSTUP_UPDATE_ROOT=https://rsproxy.cn/rustup; \
-#                 rustup default stable; \
-#             else \
-#                 rustup default stable; \
-#             fi"
-# RUN rustup default stable
 RUN cargo install cargo-watch
 ENV RUSTUP_DIST_SERVER="https://rsproxy.cn"
 ENV RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
@@ -131,19 +132,18 @@ RUN mkdir -p $HOME/.cargo && mv /tmp/cargo-config.toml $HOME/.cargo/config.toml
 
 # typst
 RUN pacman -Syu typst noto-fonts noto-fonts-cjk adobe-source-han-sans-cn-fonts noto-fonts-emoji ttf-ubuntu-font-family --noconfirm
-# COPY typst/fonts /usr/share/fonts/docker-dev
 ENV TYPST_FONT_PATHS=/usr/share/fonts
-RUN wget https://github.com/Enter-tainer/typstyle/releases/latest/download/typstyle-x86_64-unknown-linux-gnu -o typstyle && chmod +x typstyle && mv typstyle /usr/bin/typstyle
+RUN wget https://github.com/Enter-tainer/typstyle/releases/latest/download/typstyle-x86_64-unknown-linux-gnu -O typstyle && chmod +x typstyle && mv typstyle /usr/bin/typstyle || echo "Warning: Failed to download typstyle"
 
 # aliyun
 RUN npm install @serverless-devs/s -g
-RUN wget https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd64.zip && unzip ossutil-v1.7.19-linux-amd64.zip && mv ossutil-v1.7.19-linux-amd64/ossutil /usr/local/bin/ && rm ossutil-v1.7.19-linux-amd64.zip ossutil-v1.7.19-linux-amd64/ossutil64 && rm -r ossutil-v1.7.19-linux-amd64
+RUN wget https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd64.zip && unzip ossutil-v1.7.19-linux-amd64.zip && mv ossutil-v1.7.19-linux-amd64/ossutil /usr/local/bin/ && rm ossutil-v1.7.19-linux-amd64.zip ossutil-v1.7.19-linux-amd64/ossutil64 && rm -r ossutil-v1.7.19-linux-amd64 || echo "Warning: Failed to download ossutil"
 
 RUN mkdir -p /docker-dev/logs
 
 WORKDIR /workspace
 
-RUN curl https://wiki.117503445.top/linux/script/ssh.sh | bash
+RUN curl https://wiki.117503445.top/linux/script/ssh.sh | bash || echo "Warning: Failed to fetch ssh script"
 COPY ./assets/sshd/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key
 COPY ./assets/sshd/ssh_host_ed25519_key.pub /etc/ssh/ssh_host_ed25519_key.pub
 RUN chmod 600 /etc/ssh/ssh_host_ed25519_key
@@ -159,8 +159,6 @@ ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1"
 COPY ./assets/claude/settings.json /tmp/claude-settings.json
 RUN mkdir -p $HOME/.claude && mv /tmp/claude-settings.json $HOME/.claude/settings.json
 
-COPY ./scripts/entrypoint/entrypoint /docker-dev/entrypoint
-
 # 配置 custom service 启动 /docker-dev/entrypoint (linuxserver 镜像推荐方式)
 RUN mkdir -p /custom-services.d && \
     printf '#!/usr/bin/with-contenv bash\nexec /docker-dev/entrypoint\n' > /custom-services.d/docker-dev-entrypoint && \
@@ -175,14 +173,12 @@ RUN mkdir -p $HOME/Templates && \
     touch "$HOME/Templates/Empty File"
 
 # 配置 abc 用户以 root 权限运行桌面，并设置桌面路径为 /root/Desktop
-# LinuxServer 镜像使用 abc 用户运行桌面环境，需要修改其 home 目录
 RUN usermod -d /root abc && \
     mkdir -p /root/Desktop && \
     chown -R abc:abc /root && \
     chmod 755 /root /root/Desktop
 
 # 配置 KDE Plasma 桌面 Folder View 显示 /root/Desktop 内容
-# 创建 KDE autostart 脚本，在桌面启动后修复配置
 RUN mkdir -p /root/.config/autostart /usr/local/bin && \
     printf '#!/bin/bash\n\
 CONFIG="/root/.config/plasma-org.kde.plasma.desktop-appletsrc"\n\

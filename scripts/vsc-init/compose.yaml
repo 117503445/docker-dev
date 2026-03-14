@@ -1,0 +1,11 @@
+services:
+  dev:
+    build:
+      context: ./
+      dockerfile: dev.Dockerfile
+    volumes:
+        - ./:/workspace
+        - lingma:/root/.lingma
+    
+volumes:
+  lingma:
