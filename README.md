@@ -103,6 +103,9 @@ go install github.com/117503445/docker-dev/scripts/vibe-init@latest
 
 # vsc-init - VS Code 配置初始化工具
 go install github.com/117503445/docker-dev/scripts/vsc-init@latest
+
+# histmon - 命令执行监控工具
+go install github.com/117503445/docker-dev/scripts/histmon@latest
 ```
 
 安装后的二进制文件位于 `$GOPATH/bin` 或 `$GOBIN` 目录下。

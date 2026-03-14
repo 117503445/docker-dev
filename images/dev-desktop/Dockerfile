@@ -36,6 +36,14 @@ RUN go mod download
 COPY scripts/vibe-init/ ./
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o app .
 
+# Build histmon
+FROM ${GO_BASE_IMAGE} AS builder-histmon
+WORKDIR /build
+COPY scripts/histmon/go.mod scripts/histmon/go.sum ./
+RUN go mod download
+COPY scripts/histmon/ ./
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o app .
+
 # ============================================
 # Main Stage
 # ============================================
@@ -144,7 +152,6 @@ RUN git config --global user.name "117503445" && \
 
 RUN go install github.com/mattn/goreman@latest
 RUN go install github.com/ycd/dstp/cmd/dstp@latest
-RUN go install github.com/117503445/histmon@master
 
 RUN go install github.com/cweill/gotests/gotests@latest && go install github.com/fatih/gomodifytags@latest && go install github.com/josharian/impl@latest && go install github.com/haya14busa/goplay/cmd/goplay@latest && go install github.com/go-delve/delve/cmd/dlv@latest && go install honnef.co/go/tools/cmd/staticcheck@latest && go install golang.org/x/tools/gopls@latest && go install github.com/ramya-rao-a/go-outline@latest && go install github.com/goreleaser/goreleaser/v2@latest && go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest && go install -v github.com/incu6us/goimports-reviser/v3@latest && go install github.com/bufbuild/buf/cmd/buf@latest && go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest && go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
 
@@ -217,6 +224,8 @@ ENV ANTHROPIC_BASE_URL="https://coding.dashscope.aliyuncs.com/apps/anthropic"
 ENV ANTHROPIC_MODEL="glm-5"
 ENV API_TIMEOUT_MS="3000000"
 ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1"
+
+COPY --from=builder-histmon /build/app /usr/local/bin/histmon
 
 COPY --from=builder-vsc-init /build/app /usr/local/bin/vsc-init
 # Run vsc-init to install VS Code extensions
