@@ -17,15 +17,21 @@ tasks:
     cmds:
       - cd scripts/entrypoint && CGO_ENABLED=0 go build -o .
       - docker build -t 117503445/dev-desktop -f ./images/dev-desktop/Dockerfile --build-arg CHINA_MIRROR=1 --progress=plain .
-      - docker rm -f dev-desktop || true
-      - docker run --rm -p 44444:4444 -p 3000:3000 --name dev-desktop 117503445/dev-desktop
-  
+
   run-dev-desktop:
     desc: "Run the dev-desktop image"
+    deps: ["build-dev-desktop"]
     cmds:
-      - docker run -it --rm -p 44444:4444 -p 3000:3000 --entrypoint zsh 117503445/dev-desktop
+      - docker rm -f dev-desktop || true
+      - docker run --rm -p 44444:4444 -p 3000:3000 --name dev-desktop -d 117503445/dev-desktop
   
   run-webtop:
     desc: "Run the webtop image"
     cmds:
       - docker run --rm -p 3000:3000 lscr.io/linuxserver/webtop:arch-kde
+
+  test:
+    desc: "Test the dev-desktop container environment"
+    deps: ["run-dev-desktop"]
+    cmds:
+      - cd scripts/go-scripts && go run . test
