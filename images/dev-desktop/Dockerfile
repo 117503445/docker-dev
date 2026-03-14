@@ -1,4 +1,44 @@
+# ============================================
+# Build Stages
+# ============================================
+ARG GO_BASE_IMAGE=golang:1.24.1
 ARG BASE_IMAGE=lscr.io/linuxserver/webtop:arch-kde
+
+# Build entrypoint
+FROM ${GO_BASE_IMAGE} AS builder-entrypoint
+WORKDIR /build
+COPY scripts/entrypoint/go.mod scripts/entrypoint/go.sum ./
+RUN go mod download
+COPY scripts/entrypoint/ ./
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o app .
+
+# Build vsc-init
+FROM ${GO_BASE_IMAGE} AS builder-vsc-init
+WORKDIR /build
+COPY scripts/vsc-init/go.mod scripts/vsc-init/go.sum ./
+RUN go mod download
+COPY scripts/vsc-init/ ./
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o app .
+
+# Build shell-init
+FROM ${GO_BASE_IMAGE} AS builder-shell-init
+WORKDIR /build
+COPY scripts/shell-init/go.mod scripts/shell-init/go.sum ./
+RUN go mod download
+COPY scripts/shell-init/ ./
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o app .
+
+# Build vibe-init
+FROM ${GO_BASE_IMAGE} AS builder-vibe-init
+WORKDIR /build
+COPY scripts/vibe-init/go.mod scripts/vibe-init/go.sum ./
+RUN go mod download
+COPY scripts/vibe-init/ ./
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o app .
+
+# ============================================
+# Main Stage
+# ============================================
 
 FROM $BASE_IMAGE
 LABEL maintainer="117503445"
@@ -28,13 +68,6 @@ RUN pacman-key --init && \
     pacman -Sy archlinux-keyring --noconfirm && \
     pacman -Su --noconfirm
 
-# 修复 nginx fancyindex 模块版本不匹配问题 - 通过 s6 custom-init 脚本在运行时修复
-RUN rm -f /etc/nginx/modules.d/fancy.conf || true && \
-    mkdir -p /custom-cont-init.d && \
-    echo '#!/bin/bash' > /custom-cont-init.d/99-fix-nginx && \
-    echo 'sed -i "s/^\s*fancyindex/#fancyindex/g" /etc/nginx/conf.d/default.conf 2>/dev/null || true' >> /custom-cont-init.d/99-fix-nginx && \
-    chmod +x /custom-cont-init.d/99-fix-nginx
-
 # 安装所需软件包
 RUN pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task go zsh-autosuggestions zsh-syntax-highlighting podman skopeo umoci ncdu cloc fuse-overlayfs nvidia-container-toolkit github-cli jq rsync kubectl helm unzip --noconfirm
 
@@ -46,25 +79,30 @@ RUN useradd -m -G wheel builder && \
     rm -rf /tmp/yay
 
 # ============================================
-# Build Go binaries (entrypoint and vsc-init)
+# Copy built binaries
 # ============================================
+COPY --from=builder-entrypoint /build/app /docker-dev/entrypoint
+COPY --from=builder-vsc-init /build/app /usr/local/bin/vsc-init
+COPY --from=builder-shell-init /build/app /usr/local/bin/shell-init
+COPY --from=builder-vibe-init /build/app /usr/local/bin/vibe-init
+
+# Setup Go environment
 ENV PATH="$HOME/go/bin:${PATH}"
 RUN go env -w GOPATH=$HOME/go
 
-# Build entrypoint
-COPY ./scripts/entrypoint/ /tmp/entrypoint/
-RUN cd /tmp/entrypoint && go mod download && CGO_ENABLED=0 go build -ldflags="-s -w" -o /docker-dev/entrypoint . && rm -rf /tmp/entrypoint
-
-# Build vsc-init
-COPY ./scripts/vsc-init/ /tmp/vsc-init/
-RUN cd /tmp/vsc-init && go mod download && CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/local/bin/vsc-init . && rm -rf /tmp/vsc-init
-
-# Install other Go tools
+# Install histmon (keeping go install method)
 RUN go install github.com/117503445/histmon@master
+
+# Install AUR packages
 RUN su - builder -c "yay -Su code-server claude-code cursor-cli openai-codex-bin --noconfirm"
+
+# Copy asset files before running init scripts
+COPY ./assets/.zshrc /tmp/.zshrc
+COPY ./assets/claude/settings.json /tmp/claude-settings.json
 
 # Run vsc-init to install VS Code extensions
 RUN /usr/local/bin/vsc-init
+
 EXPOSE 4444
 
 # 如果设置了 $CHINA_MIRROR 环境变量，则配置go代理
@@ -83,19 +121,13 @@ RUN git config --global user.name "117503445" && \
 RUN go install github.com/mattn/goreman@latest
 RUN go install github.com/ycd/dstp/cmd/dstp@latest
 
-# 更改默认 shell 为 zsh
-RUN chsh -s /usr/bin/zsh
-RUN if [ -z "$CHINA_MIRROR" ]; then \
-      sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"; \
-    else \
-      sh -c "$(curl -fsSL https://install.ohmyz.sh)"; \
-    fi
-COPY ./assets/.zshrc /tmp/.zshrc
-RUN mv /tmp/.zshrc $HOME/.zshrc
-RUN touch $HOME/.zshrc-custom
-RUN TOKEN="T" ENDPOINT="E" histmon install
+# Run shell-init
+RUN /usr/local/bin/shell-init
 
 RUN go install github.com/cweill/gotests/gotests@latest && go install github.com/fatih/gomodifytags@latest && go install github.com/josharian/impl@latest && go install github.com/haya14busa/goplay/cmd/goplay@latest && go install github.com/go-delve/delve/cmd/dlv@latest && go install honnef.co/go/tools/cmd/staticcheck@latest && go install golang.org/x/tools/gopls@latest && go install github.com/ramya-rao-a/go-outline@latest && go install github.com/goreleaser/goreleaser/v2@latest && go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 && go install -v github.com/incu6us/goimports-reviser/v3@latest && go install github.com/bufbuild/buf/cmd/buf@latest && go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest && go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest && rm -rf $HOME/.cache $HOME/go/pkg
+
+# Run vibe-init
+RUN /usr/local/bin/vibe-init
 
 # front
 RUN pacman -Syu npm yarn pnpm --noconfirm
@@ -156,8 +188,6 @@ ENV ANTHROPIC_BASE_URL="https://coding.dashscope.aliyuncs.com/apps/anthropic"
 ENV ANTHROPIC_MODEL="glm-5"
 ENV API_TIMEOUT_MS="3000000"
 ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1"
-COPY ./assets/claude/settings.json /tmp/claude-settings.json
-RUN mkdir -p $HOME/.claude && mv /tmp/claude-settings.json $HOME/.claude/settings.json
 
 # 配置 custom service 启动 /docker-dev/entrypoint (linuxserver 镜像推荐方式)
 RUN mkdir -p /custom-services.d && \
@@ -206,3 +236,10 @@ fi\n\
     chmod +x /usr/local/bin/fix-desktop-url.sh && \
     printf '[Desktop Entry]\nType=Application\nName=Fix Desktop URL\nExec=/usr/local/bin/fix-desktop-url.sh\nX-KDE-autostart-phase=2\nOnlyShowIn=KDE;\n' > /root/.config/autostart/fix-desktop-url.desktop && \
     chown -R abc:abc /root/.config/autostart
+
+# 修复 nginx fancyindex 模块版本不匹配问题 - 通过 s6 custom-init 脚本在运行时修复
+RUN rm -f /etc/nginx/modules.d/fancy.conf || true && \
+    mkdir -p /custom-cont-init.d && \
+    echo '#!/bin/bash' > /custom-cont-init.d/99-fix-nginx && \
+    echo 'sed -i "s/^\s*fancyindex/#fancyindex/g" /etc/nginx/conf.d/default.conf 2>/dev/null || true' >> /custom-cont-init.d/99-fix-nginx && \
+    chmod +x /custom-cont-init.d/99-fix-nginx

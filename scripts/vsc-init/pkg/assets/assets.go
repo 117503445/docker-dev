@@ -29,6 +29,7 @@ var Exts = []string{
 	"tomoki1207.pdf",
   "iliazeus.vscode-ansi", // 显示 ANSI 文本颜色
 	"anthropic.claude-code", // Claude Code VS Code extension
+	"GitHub.copilot-chat",
 }
 
 var KeyBindings = `[
