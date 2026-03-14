@@ -1,4 +1,4 @@
-module github.com/117503445/docker-dev/vibe-init
+module github.com/117503445/docker-dev/scripts/vibe-init
 
 go 1.23.3
 

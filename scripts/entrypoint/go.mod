@@ -1,4 +1,4 @@
-module github.com/117503445/docker-dev/entrypoint
+module github.com/117503445/docker-dev/scripts/entrypoint
 
 go 1.23.2
 

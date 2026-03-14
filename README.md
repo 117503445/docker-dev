@@ -90,6 +90,23 @@ su - builder -c "yay -Su scala --noconfirm"
 
 将脚本映射到容器的 `/entrypoint` 可以自定义启动命令
 
+## 通过 go install 安装 scripts 下的工具
+
+scripts 目录下包含多个 Go 工具，可以通过 `go install` 直接安装：
+
+```sh
+# shell-init - Shell 初始化工具
+go install github.com/117503445/docker-dev/scripts/shell-init@latest
+
+# vibe-init - Vibe 初始化工具
+go install github.com/117503445/docker-dev/scripts/vibe-init@latest
+
+# vsc-init - VS Code 配置初始化工具
+go install github.com/117503445/docker-dev/scripts/vsc-init@latest
+```
+
+安装后的二进制文件位于 `$GOPATH/bin` 或 `$GOBIN` 目录下。
+
 ## 实现
 
 在 `dev/Dockerfile` 中定义了镜像的构建步骤。其中

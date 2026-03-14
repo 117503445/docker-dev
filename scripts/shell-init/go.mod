@@ -1,4 +1,4 @@
-module github.com/117503445/docker-dev/shell-init
+module github.com/117503445/docker-dev/scripts/shell-init
 
 go 1.23.3
 

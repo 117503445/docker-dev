@@ -13,7 +13,7 @@ import (
 	"sync"
 
 	"github.com/117503445/goutils"
-	"github.com/117503445/vsc-init/pkg/assets"
+	"github.com/117503445/docker-dev/scripts/vsc-init/pkg/assets"
 	"github.com/Masterminds/semver/v3"
 	"github.com/rs/zerolog/log"
 	"github.com/tidwall/gjson"

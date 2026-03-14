@@ -1,3 +1,7 @@
 compose.override.yaml
 p.md
+scripts/entrypoint/entrypoint
 scripts/go-scripts/go-scripts
+scripts/shell-init/shell-init
+scripts/vibe-init/vibe-init
+scripts/vsc-init/vsc-init

@@ -1,4 +1,4 @@
-module github.com/117503445/vsc-init
+module github.com/117503445/docker-dev/scripts/vsc-init
 
 go 1.23.3
 

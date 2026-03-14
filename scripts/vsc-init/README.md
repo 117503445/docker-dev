@@ -7,7 +7,7 @@ Code Server 安装扩展、修改设置
 安装
 
 ```sh
-go install github.com/117503445/vsc-init@latest
+go install github.com/117503445/docker-dev/scripts/vsc-init@latest
 ```
 
 运行
