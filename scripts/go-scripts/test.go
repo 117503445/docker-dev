@@ -70,7 +70,7 @@ func testContainer(containerName string) {
 		{Name: "GitHub CLI", Cmd: "gh", Args: []string{"--version"}, Timeout: 10 * time.Second},
 
 		// Build Tools
-		{Name: "Task", Cmd: "task", Args: []string{"--version"}, Timeout: 10 * time.Second},
+		{Name: "Task", Cmd: "go-task", Args: []string{"--version"}, Timeout: 10 * time.Second},
 		{Name: "Make", Cmd: "make", Args: []string{"--version"}, Timeout: 10 * time.Second},
 
 		// Python Tools
