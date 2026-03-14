@@ -232,5 +232,9 @@ RUN /usr/local/bin/vibe-init
 
 COPY --from=builder-entrypoint /build/app /docker-dev/entrypoint
 
+# unstable
+# RUN npm install -g @siteboon/claude-code-ui
+RUN pacman -Syu --noconfirm htop
+
 RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 RUN go env -w GOPROXY=https://goproxy.cn,direct
