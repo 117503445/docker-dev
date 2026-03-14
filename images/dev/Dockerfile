@@ -59,9 +59,7 @@ RUN if [ -z "$CHINA_MIRROR" ]; then \
     else \
       sh -c "$(curl -fsSL https://install.ohmyz.sh)"; \
     fi
-COPY ./assets/.zshrc /root/.zshrc
-RUN touch /root/.zshrc-custom
-RUN TOKEN="T" ENDPOINT="E" histmon install
+# .zshrc is now embedded in shell-init binary
 
 RUN go install github.com/cweill/gotests/gotests@latest && go install github.com/fatih/gomodifytags@latest && go install github.com/josharian/impl@latest && go install github.com/haya14busa/goplay/cmd/goplay@latest && go install github.com/go-delve/delve/cmd/dlv@latest && go install honnef.co/go/tools/cmd/staticcheck@latest && go install golang.org/x/tools/gopls@latest && go install github.com/ramya-rao-a/go-outline@latest && go install github.com/goreleaser/goreleaser/v2@latest && go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 && go install -v github.com/incu6us/goimports-reviser/v3@latest && go install github.com/bufbuild/buf/cmd/buf@latest && go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest && go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest && rm -rf /root/.cache /root/go/pkg
 
@@ -121,8 +119,24 @@ RUN npm install @serverless-devs/s -g
 RUN wget https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd64.zip && unzip ossutil-v1.7.19-linux-amd64.zip && mv ossutil-v1.7.19-linux-amd64/ossutil /usr/local/bin/ && rm ossutil-v1.7.19-linux-amd64.zip ossutil-v1.7.19-linux-amd64/ossutil64 && rm -r ossutil-v1.7.19-linux-amd64
 
 RUN mkdir -p /docker-dev/logs
+
+# Build and install shell-init (embedded .zshrc)
+COPY ./scripts/shell-init /tmp/shell-init
+RUN cd /tmp/shell-init && go build . && cp ./shell-init /docker-dev/shell-init && rm -rf /tmp/shell-init
+
+# Build and install vibe-init (embedded Claude settings)
+COPY ./scripts/vibe-init /tmp/vibe-init
+RUN cd /tmp/vibe-init && go build . && cp ./vibe-init /docker-dev/vibe-init && rm -rf /tmp/vibe-init
+
+# Build and install entrypoint
 COPY ./scripts/entrypoint /tmp/entrypoint
 RUN cd /tmp/entrypoint && cp Procfile /docker-dev/Procfile && go build . && cp ./entrypoint /docker-dev/entrypoint && rm -rf /tmp/entrypoint
+
+# Run shell-init to write embedded .zshrc
+RUN /docker-dev/shell-init
+
+# Run vibe-init to write embedded Claude settings
+RUN /docker-dev/vibe-init
 
 WORKDIR /workspace
 

@@ -1,12 +1,16 @@
 package main
 
 import (
+	"embed"
 	"os"
 	"os/exec"
 
 	"github.com/117503445/goutils"
 	"github.com/rs/zerolog/log"
 )
+
+//go:embed .zshrc
+var zshrcFS embed.FS
 
 func main() {
 	goutils.InitZeroLog()
@@ -42,21 +46,16 @@ func main() {
 		log.Info().Msg("oh-my-zsh already installed")
 	}
 
-	// Copy .zshrc from /tmp/.zshrc to home directory
-	tmpZshrc := "/tmp/.zshrc"
+	// Write embedded .zshrc to home directory
 	homeZshrc := home + "/.zshrc"
-	if goutils.PathExists(tmpZshrc) {
-		log.Info().Str("src", tmpZshrc).Str("dst", homeZshrc).Msg("Copying .zshrc")
-		content, err := goutils.ReadText(tmpZshrc)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to read .zshrc from /tmp")
-		}
-		err = goutils.WriteText(homeZshrc, content)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to write .zshrc")
-		}
-	} else {
-		log.Warn().Str("path", tmpZshrc).Msg(".zshrc not found in /tmp, skipping")
+	log.Info().Str("path", homeZshrc).Msg("Writing embedded .zshrc")
+	content, err := zshrcFS.ReadFile(".zshrc")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to read embedded .zshrc")
+	}
+	err = goutils.WriteText(homeZshrc, string(content))
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to write .zshrc")
 	}
 
 	// Create .zshrc-custom if not exists

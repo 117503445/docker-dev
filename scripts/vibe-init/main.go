@@ -1,32 +1,15 @@
 package main
 
 import (
+	"embed"
 	"os"
 
 	"github.com/117503445/goutils"
 	"github.com/rs/zerolog/log"
 )
 
-// ClaudeSettingsContent is the Claude Code settings
-const ClaudeSettingsContent = `{
-    "skipDangerousModePermissionPrompt": true,
-    "enabledPlugins": {
-        "gopls-lsp@claude-plugins-official": true
-    },
-    "permissions": {
-        "allow": [
-            "Read(**)",
-            "Edit(**)",
-            "Bash(*)",
-            "LS(**)",
-            "Grep(**)",
-            "Glob(**)",
-            "WebFetch",
-            "MCP"
-        ],
-        "deny": []
-    }
-}`
+//go:embed settings.json
+var settingsFS embed.FS
 
 func main() {
 	goutils.InitZeroLog()
@@ -46,26 +29,16 @@ func main() {
 		}
 	}
 
-	// Copy settings.json from /tmp/claude-settings.json if exists, otherwise use embedded
-	tmpSettings := "/tmp/claude-settings.json"
+	// Write embedded Claude settings
 	settingsPath := claudeDir + "/settings.json"
-
-	if goutils.PathExists(tmpSettings) {
-		log.Info().Str("src", tmpSettings).Str("dst", settingsPath).Msg("Copying Claude settings from /tmp")
-		content, err := goutils.ReadText(tmpSettings)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to read Claude settings from /tmp")
-		}
-		err = goutils.WriteText(settingsPath, content)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to write Claude settings")
-		}
-	} else {
-		log.Info().Str("path", settingsPath).Msg("Writing embedded Claude settings")
-		err := goutils.WriteText(settingsPath, ClaudeSettingsContent)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to write Claude settings")
-		}
+	log.Info().Str("path", settingsPath).Msg("Writing embedded Claude settings")
+	content, err := settingsFS.ReadFile("settings.json")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to read embedded settings.json")
+	}
+	err = goutils.WriteText(settingsPath, string(content))
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to write Claude settings")
 	}
 
 	log.Info().Msg("vibe-init completed")

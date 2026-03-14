@@ -69,7 +69,7 @@ RUN pacman-key --init && \
     pacman -Su --noconfirm
 
 # 安装所需软件包
-RUN pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task go zsh-autosuggestions zsh-syntax-highlighting podman skopeo umoci ncdu cloc fuse-overlayfs nvidia-container-toolkit github-cli jq rsync kubectl helm unzip --noconfirm
+RUN pacman -Syu which zsh fish btop git openssh docker docker-compose docker-buildx nano vim micro base-devel parted tmux python wget yazi go-task go zsh-autosuggestions zsh-syntax-highlighting podman skopeo umoci ncdu cloc fuse-overlayfs nvidia-container-toolkit github-cli jq rsync kubectl helm unzip npm --noconfirm
 
 # 添加用户 builder，并安装 yay AUR 助手
 RUN useradd -m -G wheel builder && \
@@ -78,30 +78,54 @@ RUN useradd -m -G wheel builder && \
     su - builder -c "cd /tmp && git clone https://aur.archlinux.org/yay-bin.git && cd yay-bin && makepkg -si --noconfirm" && \
     rm -rf /tmp/yay
 
-# ============================================
-# Copy built binaries
-# ============================================
-COPY --from=builder-entrypoint /build/app /docker-dev/entrypoint
-COPY --from=builder-vsc-init /build/app /usr/local/bin/vsc-init
-COPY --from=builder-shell-init /build/app /usr/local/bin/shell-init
-COPY --from=builder-vibe-init /build/app /usr/local/bin/vibe-init
+# Install AUR packages
+RUN su - builder -c "yay -Su code-server claude-code cursor-cli openai-codex-bin --noconfirm"
+
+# latex
+RUN git clone https://github.com/Haixing-Hu/latex-chinese-fonts.git /usr/share/fonts/latex-chinese-fonts --depth=1
+
+# cpp
+RUN pacman -Syu gcc clang cmake --noconfirm
+
+# csharp
+RUN pacman -Syu --noconfirm dotnet-runtime dotnet-sdk aspnet-runtime
+
+# java
+RUN pacman -Sy jdk-openjdk maven gradle kotlin --noconfirm
+
+# typst
+RUN pacman -Syu typst noto-fonts noto-fonts-cjk adobe-source-han-sans-cn-fonts noto-fonts-emoji ttf-ubuntu-font-family --noconfirm
+ENV TYPST_FONT_PATHS=/usr/share/fonts
+RUN wget https://github.com/Enter-tainer/typstyle/releases/latest/download/typstyle-x86_64-unknown-linux-gnu -O typstyle && chmod +x typstyle && mv typstyle /usr/bin/typstyle || echo "Warning: Failed to download typstyle"
+
+# aliyun
+RUN npm install @serverless-devs/s -g
+RUN wget https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd64.zip && unzip ossutil-v1.7.19-linux-amd64.zip && mv ossutil-v1.7.19-linux-amd64/ossutil /usr/local/bin/ && rm ossutil-v1.7.19-linux-amd64.zip ossutil-v1.7.19-linux-amd64/ossutil64 && rm -r ossutil-v1.7.19-linux-amd64 || echo "Warning: Failed to download ossutil"
+
+# python
+RUN pacman -Syu uv --noconfirm
+COPY ./assets/python/uv.toml /tmp/uv.toml
+RUN mkdir -p $HOME/.config/uv && mv /tmp/uv.toml $HOME/.config/uv/uv.toml
+
+# front
+RUN pacman -Syu npm yarn pnpm --noconfirm
+RUN npm config set registry https://registry.npmmirror.com
+RUN yarn config set registry https://registry.npmmirror.com
+RUN yarn global add typescript
+RUN pnpm config set registry https://registry.npmmirror.com
+
+# rust
+RUN pacman -Syu rust-analyzer --noconfirm
+RUN cargo install cargo-watch
+ENV RUSTUP_DIST_SERVER="https://rsproxy.cn"
+ENV RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
+ENV PATH="$HOME/.cargo/bin:${PATH}"
+COPY ./assets/rust/config.toml /tmp/cargo-config.toml
+RUN mkdir -p $HOME/.cargo && mv /tmp/cargo-config.toml $HOME/.cargo/config.toml
 
 # Setup Go environment
 ENV PATH="$HOME/go/bin:${PATH}"
 RUN go env -w GOPATH=$HOME/go
-
-# Install histmon (keeping go install method)
-RUN go install github.com/117503445/histmon@master
-
-# Install AUR packages
-RUN su - builder -c "yay -Su code-server claude-code cursor-cli openai-codex-bin --noconfirm"
-
-# Copy asset files before running init scripts
-COPY ./assets/.zshrc /tmp/.zshrc
-COPY ./assets/claude/settings.json /tmp/claude-settings.json
-
-# Run vsc-init to install VS Code extensions
-RUN /usr/local/bin/vsc-init
 
 EXPOSE 4444
 
@@ -120,62 +144,15 @@ RUN git config --global user.name "117503445" && \
 
 RUN go install github.com/mattn/goreman@latest
 RUN go install github.com/ycd/dstp/cmd/dstp@latest
+RUN go install github.com/117503445/histmon@master
 
-# Run shell-init
-RUN /usr/local/bin/shell-init
-
-RUN go install github.com/cweill/gotests/gotests@latest && go install github.com/fatih/gomodifytags@latest && go install github.com/josharian/impl@latest && go install github.com/haya14busa/goplay/cmd/goplay@latest && go install github.com/go-delve/delve/cmd/dlv@latest && go install honnef.co/go/tools/cmd/staticcheck@latest && go install golang.org/x/tools/gopls@latest && go install github.com/ramya-rao-a/go-outline@latest && go install github.com/goreleaser/goreleaser/v2@latest && go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 && go install -v github.com/incu6us/goimports-reviser/v3@latest && go install github.com/bufbuild/buf/cmd/buf@latest && go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest && go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest && rm -rf $HOME/.cache $HOME/go/pkg
-
-# Run vibe-init
-RUN /usr/local/bin/vibe-init
-
-# front
-RUN pacman -Syu npm yarn pnpm --noconfirm
-RUN npm config set registry https://registry.npmmirror.com
-RUN yarn config set registry https://registry.npmmirror.com
-RUN yarn global add typescript
-RUN pnpm config set registry https://registry.npmmirror.com
-
-# python
-RUN pacman -Syu uv --noconfirm
-COPY ./assets/python/uv.toml /tmp/uv.toml
-RUN mkdir -p $HOME/.config/uv && mv /tmp/uv.toml $HOME/.config/uv/uv.toml
-
-# latex
-RUN git clone https://github.com/Haixing-Hu/latex-chinese-fonts.git /usr/share/fonts/latex-chinese-fonts --depth=1 || echo "Warning: Failed to clone latex fonts"
-
-# cpp
-RUN pacman -Syu gcc clang cmake --noconfirm
-
-# csharp
-RUN pacman -Syu --noconfirm dotnet-runtime dotnet-sdk aspnet-runtime
-
-# java
-RUN pacman -Sy jdk-openjdk maven gradle kotlin --noconfirm
-
-# rust
-RUN pacman -Syu rust-analyzer --noconfirm
-RUN cargo install cargo-watch
-ENV RUSTUP_DIST_SERVER="https://rsproxy.cn"
-ENV RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
-ENV PATH="$HOME/.cargo/bin:${PATH}"
-COPY ./assets/rust/config.toml /tmp/cargo-config.toml
-RUN mkdir -p $HOME/.cargo && mv /tmp/cargo-config.toml $HOME/.cargo/config.toml
-
-# typst
-RUN pacman -Syu typst noto-fonts noto-fonts-cjk adobe-source-han-sans-cn-fonts noto-fonts-emoji ttf-ubuntu-font-family --noconfirm
-ENV TYPST_FONT_PATHS=/usr/share/fonts
-RUN wget https://github.com/Enter-tainer/typstyle/releases/latest/download/typstyle-x86_64-unknown-linux-gnu -O typstyle && chmod +x typstyle && mv typstyle /usr/bin/typstyle || echo "Warning: Failed to download typstyle"
-
-# aliyun
-RUN npm install @serverless-devs/s -g
-RUN wget https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd64.zip && unzip ossutil-v1.7.19-linux-amd64.zip && mv ossutil-v1.7.19-linux-amd64/ossutil /usr/local/bin/ && rm ossutil-v1.7.19-linux-amd64.zip ossutil-v1.7.19-linux-amd64/ossutil64 && rm -r ossutil-v1.7.19-linux-amd64 || echo "Warning: Failed to download ossutil"
+RUN go install github.com/cweill/gotests/gotests@latest && go install github.com/fatih/gomodifytags@latest && go install github.com/josharian/impl@latest && go install github.com/haya14busa/goplay/cmd/goplay@latest && go install github.com/go-delve/delve/cmd/dlv@latest && go install honnef.co/go/tools/cmd/staticcheck@latest && go install golang.org/x/tools/gopls@latest && go install github.com/ramya-rao-a/go-outline@latest && go install github.com/goreleaser/goreleaser/v2@latest && go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest && go install -v github.com/incu6us/goimports-reviser/v3@latest && go install github.com/bufbuild/buf/cmd/buf@latest && go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest && go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
 
 RUN mkdir -p /docker-dev/logs
 
 WORKDIR /workspace
 
-RUN curl https://wiki.117503445.top/linux/script/ssh.sh | bash || echo "Warning: Failed to fetch ssh script"
+RUN curl https://wiki.117503445.top/linux/script/ssh.sh | bash
 COPY ./assets/sshd/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key
 COPY ./assets/sshd/ssh_host_ed25519_key.pub /etc/ssh/ssh_host_ed25519_key.pub
 RUN chmod 600 /etc/ssh/ssh_host_ed25519_key
@@ -184,18 +161,10 @@ ENV TZ=Asia/Shanghai
 ENV DOCKER_BUILDKIT=1
 ENV PATH="$HOME/.local/bin:${PATH}"
 
-ENV ANTHROPIC_BASE_URL="https://coding.dashscope.aliyuncs.com/apps/anthropic"
-ENV ANTHROPIC_MODEL="glm-5"
-ENV API_TIMEOUT_MS="3000000"
-ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1"
-
 # 配置 custom service 启动 /docker-dev/entrypoint (linuxserver 镜像推荐方式)
 RUN mkdir -p /custom-services.d && \
     printf '#!/usr/bin/with-contenv bash\nexec /docker-dev/entrypoint\n' > /custom-services.d/docker-dev-entrypoint && \
     chmod +x /custom-services.d/docker-dev-entrypoint
-
-RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
-RUN go env -w GOPROXY=https://goproxy.cn,direct
 
 # 创建 KDE 桌面模板文件，使右键菜单可以创建新文件
 RUN mkdir -p $HOME/Templates && \
@@ -243,3 +212,25 @@ RUN rm -f /etc/nginx/modules.d/fancy.conf || true && \
     echo '#!/bin/bash' > /custom-cont-init.d/99-fix-nginx && \
     echo 'sed -i "s/^\s*fancyindex/#fancyindex/g" /etc/nginx/conf.d/default.conf 2>/dev/null || true' >> /custom-cont-init.d/99-fix-nginx && \
     chmod +x /custom-cont-init.d/99-fix-nginx
+
+ENV ANTHROPIC_BASE_URL="https://coding.dashscope.aliyuncs.com/apps/anthropic"
+ENV ANTHROPIC_MODEL="glm-5"
+ENV API_TIMEOUT_MS="3000000"
+ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1"
+
+COPY --from=builder-vsc-init /build/app /usr/local/bin/vsc-init
+# Run vsc-init to install VS Code extensions
+RUN /usr/local/bin/vsc-init
+
+COPY --from=builder-shell-init /build/app /usr/local/bin/shell-init
+# Run shell-init
+RUN /usr/local/bin/shell-init
+
+COPY --from=builder-vibe-init /build/app /usr/local/bin/vibe-init
+# Run vibe-init
+RUN /usr/local/bin/vibe-init
+
+COPY --from=builder-entrypoint /build/app /docker-dev/entrypoint
+
+RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
+RUN go env -w GOPROXY=https://goproxy.cn,direct

@@ -97,7 +97,7 @@ source $ZSH/oh-my-zsh.sh
 # the $ZSH_CUSTOM folder, with .zsh extension. Examples:
 # - $ZSH_CUSTOM/aliases.zsh
 # - $ZSH_CUSTOM/macos.zsh
-# For a full list of active aliases, run `alias`.
+# For a full list of active aliases, run: alias
 #
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
@@ -116,6 +116,12 @@ alias dcl="docker compose logs"
 alias dcp="docker compose pull"
 alias dc-update="docker compose pull && docker compose up -d"
 alias dkr="docker run --rm -it --entrypoint sh"
+alias cla="IS_SANDBOX=1 claude --dangerously-skip-permissions"
+alias cod="codex --dangerously-bypass-approvals-and-sandbox"
+yay-su() { su - builder -c "yay -Su $* --noconfirm"; }
+yay-syu() { su - builder -c "yay -Syu $* --noconfirm"; }
+alias pacman-sy="pacman -Sy --noconfirm"
+alias pacman-syu="pacman -Syu --noconfirm"
 
 # for
 source /root/.zshrc-custom
