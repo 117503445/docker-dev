@@ -70,40 +70,73 @@ func main() {
 		codeServerPort = "4444"
 	}
 	codeServerConfigText := fmt.Sprintf(codeServerConfigTemplate, codeServerPort, codeServerPassword)
-	err := goutils.WriteText(codeServerConfigPath, codeServerConfigText)
+	// 确保目录存在
+	configDir := "/root/.config/code-server"
+	if goutils.PathExists("/config") {
+		configDir = "/config/.config/code-server"
+	}
+	if !goutils.PathExists(configDir) {
+		if err := os.MkdirAll(configDir, 0755); err != nil {
+			log.Panic().Err(err).Msg("Failed to create code-server config directory")
+		}
+	}
+	// 使用 os.WriteFile 直接写入，确保文件权限正确
+	err := os.WriteFile(codeServerConfigPath, []byte(codeServerConfigText), 0644)
 	if err != nil {
 		log.Panic().Err(err).Msg("Failed to write code-server config file")
 	}
+	log.Info().Str("path", codeServerConfigPath).Msg("Wrote code-server config file")
+
+	// 检查 code-server 是否已经在运行
+	codeServerAlreadyRunning := false
+	if goutils.FileExists("/proc") {
+		// 检查是否有 code-server 进程在监听指定端口
+		cmd := exec.Command("ss", "-tlnp")
+		output, err := cmd.Output()
+		if err == nil && strings.Contains(string(output), ":"+codeServerPort) {
+			log.Info().Str("port", codeServerPort).Msg("Port already in use, checking if code-server is running")
+			// 检查是否是 code-server 在使用这个端口
+			if strings.Contains(string(output), "code-server") || strings.Contains(string(output), "node") {
+				log.Info().Msg("code-server appears to be already running, skipping start")
+				codeServerAlreadyRunning = true
+			}
+		}
+	}
+
+	if !codeServerAlreadyRunning {
+		go func() {
+			fileLog := "/docker-dev/logs/code-server.log"
+			file, err := os.OpenFile(fileLog, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to open log file, code-server will not start")
+				return
+			}
+			defer file.Close()
+
+			// 使用 --config 参数指定配置文件路径
+			cmd := exec.Command("/usr/sbin/code-server", "--config", codeServerConfigPath)
+			// cmd.Stdin = os.Stdin
+			cmd.Stdout = file
+			cmd.Stderr = file
+			cmd.Dir = "/docker-dev"
+			cmd.Env = os.Environ()
+			log.Info().Str("log", fileLog).Str("config", codeServerConfigPath).Msg("Starting code-server")
+			if err := cmd.Run(); err != nil {
+				log.Error().Err(err).Msg("Failed to run code-server")
+			}
+		}()
+	}
 
 	go func() {
-		fileLog := "/docker-dev/logs/code-server.log"
-		file, err := os.OpenFile(fileLog, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to open log file, code-server will not start")
-			return
-		}
-		defer file.Close()
-
-		cmd := exec.Command("/usr/sbin/code-server")
-		// cmd.Stdin = os.Stdin
-		cmd.Stdout = file
-		cmd.Stderr = file
-		cmd.Dir = "/docker-dev"
-		cmd.Env = os.Environ()
-		log.Info().Str("log", fileLog).Msg("Starting code-server")
-		if err := cmd.Run(); err != nil {
-			log.Error().Err(err).Msg("Failed to run code-server")
-		}
-	}()
-
-	go func() {
-		cmd := exec.Command("/usr/sbin/sshd")
+		// sshd -D 使其在前台运行，不会 fork 后退出
+		args := []string{"-D"}
 		if os.Getenv("SSHD_PORT") != "" {
-			cmd = exec.Command("/usr/sbin/sshd", "-p", os.Getenv("SSHD_PORT"))
+			args = append(args, "-p", os.Getenv("SSHD_PORT"))
 		}
+		cmd := exec.Command("/usr/sbin/sshd", args...)
 		log.Info().
 			Str("cmd", cmd.String()).
-			Msg("Starting sshd")
+			Msg("Starting sshd in foreground mode")
 		if err := cmd.Run(); err != nil {
 			log.Error().Err(err).Msg("Failed to run sshd")
 		}

@@ -4,7 +4,7 @@ tasks:
   default:
     desc: "The default task" 
     cmds:
-      - task: build-dev
+      - task: run-dev-desktop
       
   build-dev:
     desc: "Build the dev image in China Mainland"
