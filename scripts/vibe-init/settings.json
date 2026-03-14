@@ -1,4 +1,44 @@
 {
-    "skipDangerousModePermissionPrompt": true,
-    "defaultMode": "bypassPermissions"
+    "defaultMode": "bypassPermissions",
+    "env": {
+        "ANTHROPIC_BASE_URL": "https://coding.dashscope.aliyuncs.com/apps/anthropic",
+        "ANTHROPIC_MODEL": "glm-5"
+    },
+    "hooks": {
+        "UserPromptSubmit": [
+            {
+                "matcher": "",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash -c 'cat >> \"$CLAUDE_PROJECT_DIR\"/prompts.jsonl'"
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "matcher": "",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash -c 'cd \"$CLAUDE_PROJECT_DIR\" || exit 0; if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then exit 0; fi; if ! git diff --quiet || ! git diff --cached --quiet || [ -n \"$(git ls-files --others --exclude-standard)\" ]; then cat >> \"$CLAUDE_PROJECT_DIR\"/responses.jsonl; fi'"
+                    }
+                ]
+            }
+        ]
+    },
+    "enabledPlugins": {
+        "gopls-lsp@claude-plugins-official": true,
+        "skill-creator@claude-plugins-official": true
+    },
+    "extraKnownMarketplaces": {
+        "anthropic-agent-skills": {
+            "source": {
+                "source": "github",
+                "repo": "anthropics/skills"
+            }
+        }
+    },
+    "skipDangerousModePermissionPrompt": true
 }
