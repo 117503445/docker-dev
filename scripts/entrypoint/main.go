@@ -142,6 +142,45 @@ func main() {
 		}
 	}()
 
+	// 启动 sshole agent
+	go func() {
+		hubServer := os.Getenv("SSHOLE_AGENT_HUB_SERVER")
+		if hubServer == "" {
+			log.Info().Msg("SSHOLE_AGENT_HUB_SERVER is not set, skipping sshole agent")
+			return
+		}
+		logFile := "/docker-dev/logs/sshole-agent.log"
+		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to open sshole agent log file")
+			return
+		}
+		defer file.Close()
+
+		args := []string{"--hub-server", hubServer}
+		if auth := os.Getenv("SSHOLE_AGENT_AUTH"); auth != "" {
+			args = append(args, "--auth", auth)
+		}
+		if name := os.Getenv("SSHOLE_AGENT_NAME"); name != "" {
+			args = append(args, "--name", name)
+		}
+		if localPort := os.Getenv("SSHOLE_AGENT_LOCAL_PORT"); localPort != "" {
+			args = append(args, "--local-port", localPort)
+		}
+		if skipSshd := os.Getenv("SSHOLE_AGENT_SKIP_SSHD"); skipSshd != "" {
+			args = append(args, "--skip-sshd")
+		}
+
+		cmd := exec.Command("agent", args...)
+		cmd.Stdout = file
+		cmd.Stderr = file
+		cmd.Env = os.Environ()
+		log.Info().Strs("args", args).Str("log", logFile).Msg("Starting sshole agent")
+		if err := cmd.Run(); err != nil {
+			log.Error().Err(err).Msg("Failed to run sshole agent")
+		}
+	}()
+
 	// go func() {
 	// 	// if /init exists, run it
 	// 	if goutils.PathExists("/init") {

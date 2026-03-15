@@ -133,6 +133,9 @@ su - builder -c "yay -Su scala --noconfirm"
 | `CODE_SERVER_PORT` | `4444` | Code Server 监听端口 |
 | `SSHD_PORT` | `22` | SSH 服务监听端口 |
 | `ANTHROPIC_AUTH_TOKEN` | - | Anthropic API 认证令牌 |
+| `SSHOLE_AGENT_HUB_SERVER` | - | sshole agent hub 服务器地址，设置后自动启动 sshole agent |
+| `SSHOLE_AGENT_AUTH` | - | sshole agent 认证信息 |
+| `SSHOLE_AGENT_NAME` | - | sshole agent 名称 |
 
 示例：
 
