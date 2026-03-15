@@ -90,6 +90,62 @@ su - builder -c "yay -Su scala --noconfirm"
 
 将脚本映射到容器的 `/entrypoint` 可以自定义启动命令
 
+## 镜像说明
+
+### dev 镜像 (`117503445/dev`)
+
+基于 Arch Linux 的开发镜像，内置 Code Server 和常用开发工具。
+
+### dev-desktop 镜像 (`117503445/dev-desktop`)
+
+基于 `lscr.io/linuxserver/webtop:arch-kde` 的桌面开发镜像，提供完整的 KDE Plasma 桌面环境。
+
+## 环境变量
+
+### dev-desktop 镜像内置环境变量
+
+以下环境变量在镜像构建时预设，通常无需修改：
+
+| 环境变量 | 默认值 | 说明 |
+|---------|--------|------|
+| `PUID` | `0` | LinuxServer 镜像用户 ID |
+| `GUID` | `0` | LinuxServer 镜像组 ID |
+| `HOME` | `/root` | 用户主目录 |
+| `LANG` | `en_US.UTF-8` | 语言环境 |
+| `LC_ALL` | `en_US.UTF-8` | 语言环境 |
+| `TZ` | `Asia/Shanghai` | 时区设置 |
+| `TYPST_FONT_PATHS` | `/usr/share/fonts` | Typst 字体搜索路径 |
+| `RUSTUP_DIST_SERVER` | `https://rsproxy.cn` | Rustup 发行服务器 |
+| `RUSTUP_UPDATE_ROOT` | `https://rsproxy.cn/rustup` | Rustup 更新根目录 |
+| `DOCKER_BUILDKIT` | `1` | 启用 Docker BuildKit |
+| `ANTHROPIC_BASE_URL` | `https://coding.dashscope.aliyuncs.com/apps/anthropic` | Anthropic API 基础 URL |
+| `ANTHROPIC_MODEL` | `glm-5` | Anthropic 模型名称 |
+| `API_TIMEOUT_MS` | `3000000` | API 超时时间（毫秒） |
+| `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` | `1` | 禁用 Claude Code 非必要流量 |
+
+### 运行时可配置环境变量
+
+以下环境变量可在容器运行时通过 `-e` 或 `environment` 设置：
+
+| 环境变量 | 默认值 | 说明 |
+|---------|--------|------|
+| `CODE_SERVER_PASSWORD` | `123456` | Code Server 访问密码 |
+| `CODE_SERVER_PORT` | `4444` | Code Server 监听端口 |
+| `SSHD_PORT` | `22` | SSH 服务监听端口 |
+
+示例：
+
+```yaml
+# compose.yaml
+services:
+  dev:
+    image: 117503445/dev-desktop
+    environment:
+      - CODE_SERVER_PASSWORD=your-secure-password
+      - CODE_SERVER_PORT=8080
+      - SSHD_PORT=2222
+```
+
 ## 通过 go install 安装 scripts 下的工具
 
 scripts 目录下包含多个 Go 工具，可以通过 `go install` 直接安装：
