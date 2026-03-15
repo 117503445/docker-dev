@@ -132,6 +132,7 @@ su - builder -c "yay -Su scala --noconfirm"
 | `CODE_SERVER_PASSWORD` | `123456` | Code Server 访问密码 |
 | `CODE_SERVER_PORT` | `4444` | Code Server 监听端口 |
 | `SSHD_PORT` | `22` | SSH 服务监听端口 |
+| `ANTHROPIC_AUTH_TOKEN` | - | Anthropic API 认证令牌 |
 
 示例：
 
@@ -379,6 +380,7 @@ services:
   dev:
     environment:
       - CODE_SERVER_PASSWORD=K8bDE57LaAp0vp
+      - ANTHROPIC_AUTH_TOKEN=your-auth-token
 ```
 
 在浏览器中输入 `http://SERVER_IP:4444`，即可访问 Code Server。
