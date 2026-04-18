@@ -246,5 +246,9 @@ COPY --from=builder-entrypoint /build/app /docker-dev/entrypoint
 # RUN npm install -g @siteboon/claude-code-ui
 RUN pacman -Syu --noconfirm htop
 
+RUN npm install -g agent-browser
+RUN agent-browser install
+RUN npx skills add vercel-labs/agent-browser
+
 RUN echo "Server = https://mirrors.ustc.edu.cn/archlinux/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 RUN go env -w GOPROXY=https://goproxy.cn,direct
