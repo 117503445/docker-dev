@@ -7,22 +7,20 @@
     "hooks": {
         "UserPromptSubmit": [
             {
-                "matcher": "",
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "bash -c 'cat >> \"$CLAUDE_PROJECT_DIR\"/prompts.jsonl'"
+                        "command": "node \"$HOME/.ai/vibe_hook.js\" claude"
                     }
                 ]
             }
         ],
         "Stop": [
             {
-                "matcher": "",
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "bash -c 'cd \"$CLAUDE_PROJECT_DIR\" || exit 0; if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then exit 0; fi; if ! git diff --quiet || ! git diff --cached --quiet || [ -n \"$(git ls-files --others --exclude-standard)\" ]; then cat >> \"$CLAUDE_PROJECT_DIR\"/responses.jsonl; fi'"
+                        "command": "node \"$HOME/.ai/vibe_hook.js\" claude"
                     }
                 ]
             }

@@ -1,0 +1,24 @@
+{
+    "hooks": {
+        "UserPromptSubmit": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "node \"$HOME/.ai/vibe_hook.js\" codex"
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "node \"$HOME/.ai/vibe_hook.js\" codex"
+                    }
+                ]
+            }
+        ]
+    }
+}
