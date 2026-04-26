@@ -20,9 +20,12 @@ description: |
 
 - 文档和注释使用中文；每个方法需要有中文注释，代码块内只在必要处添加精简注释。
 - 前端使用 TypeScript 编写；没有特殊声明时，其他代码和脚本使用 Go 编写。
-- E2E 测试入口统一使用 `go-task e2e`。
-- 如果需要修改代码，并且项目可以运行 `go-task e2e`，先在测试用例中覆盖新增需求，运行 `go-task e2e -- --case <name>` 并确认失败；实现后继续运行该命令直到成功，最后运行 `go-task e2e`。
-- 全量测试入口统一使用 `go-task test`；该任务必须运行所有测试，包括单元测试、集成测试和 E2E 测试。
+- 测试入口统一使用 `go-task test`；该任务必须运行所有测试，包括单元测试、集成测试和 E2E 测试。
+- 不保留独立 E2E 顶层入口；单独调试 E2E 时使用 `go-task test:e2e -- --case <name>`。
+- 如果需要修改代码，并且项目可以运行 `go-task test`，先在测试用例中覆盖新增需求；E2E 变更先运行 `go-task test:e2e -- --case <name>` 并确认失败，实现后继续运行该命令直到成功，最后运行 `go-task test`。
+- `test:ut` 的日志必须输出到 `./data/ut/`；`test:it` 的日志必须输出到 `./data/it/`。
+- 集成测试指先编译并启动一个 Go 服务，再使用 Go client 调用该服务验证行为；启动、等待、调用和清理逻辑写在 `scripts/go-scripts it` 中。
+- 本地运行入口统一使用 `go-task run`。
 - 修改后必须运行 `go-task test`，并保证通过。
 - Taskfile 不能包含复杂逻辑，越简单越好；如果需要复杂逻辑，写在 `scripts/go-scripts/` 中，再由 Taskfile 调用。
 - 密钥文件必须放在 `.env` 中，代码需要主动加载 `.env`；不应进入版本控制的文件需要加入 `.gitignore`。
@@ -149,8 +152,7 @@ project-root/
 │   │   ├── deploy/
 │   │   ├── format/
 │   │   ├── fe/
-│   │   ├── test/
-│   │   └── e2e/
+│   │   └── test/
 │   └── e2e/                    # E2E 测试（Python Playwright）
 │       ├── main.py
 │       ├── pyproject.toml
@@ -411,6 +413,35 @@ export default defineConfig({
 })
 ```
 
+### 静态资源嵌入
+
+前端生产构建输出到 `fe/dist` 后，需要同步到后端 package 内的静态资源目录，再通过 Go `embed` 嵌入后端。`//go:embed` 只能嵌入当前 package 目录下的文件，不能直接嵌入仓库根目录下的 `fe/dist`。构建任务必须保证先运行 `fe:build`，再同步静态资源并编译后端二进制文件。
+
+```go
+// cmd/rpc/static.go
+package main
+
+import (
+    "embed"
+    "io/fs"
+    "net/http"
+)
+
+// staticFS 嵌入前端生产构建产物。
+//
+//go:embed all:static/dist
+var staticFS embed.FS
+
+// newStaticHandler 创建静态资源处理器。
+func newStaticHandler() http.Handler {
+    distFS, err := fs.Sub(staticFS, "static/dist")
+    if err != nil {
+        return http.NotFoundHandler()
+    }
+    return http.FileServer(http.FS(distFS))
+}
+```
+
 ### Tailwind CSS 配置
 
 ```css
@@ -433,7 +464,7 @@ export default defineConfig({
 ### Taskfile 最佳实践
 
 - 根目录 `Taskfile.yml` 只做全局配置、`includes` 和稳定入口转发，不写具体业务逻辑。
-- 领域任务放到 `scripts/tasks/<领域>/Taskfile.yml`，例如 `build`、`run`、`gen`、`deploy`、`format`、`fe`、`test`、`e2e`。
+- 领域任务放到 `scripts/tasks/<领域>/Taskfile.yml`，例如 `build`、`run`、`gen`、`deploy`、`format`、`fe`、`test`。
 - 所有对用户可见的任务必须有中文 `desc`；复用但不希望直接调用的任务设置 `internal: true`。
 - 跨 include 依赖使用完整命名空间，例如 `:base:clear`、`:build:bin`；依赖链不能依赖当前 shell 的隐式工作目录。
 - 任务命名使用小写短横线或既有项目风格；同一仓库内保持一致。
@@ -441,7 +472,7 @@ export default defineConfig({
 - 所有任务都要确保基于本地最新代码执行；运行、测试、E2E 等任务必须通过 `deps` 依赖必要的生成或构建任务，例如 E2E 依赖后端和前端构建。
 - 编译、代码生成等无副作用任务应写好 `sources` 和 `generates`，确保代码不变时不重新执行。
 - 有副作用的任务不要配置 `sources` 和 `generates`，例如 `run`、`deploy`、`test`、`e2e`。
-- 需要传递用户参数时使用 `{{.CLI_ARGS}}`，例如 `go-task e2e -- --case <name>`。
+- 需要传递用户参数时使用 `{{.CLI_ARGS}}`，例如 `go-task test:e2e -- --case <name>`。
 - 前端、E2E 等子项目优先使用 `dir`，避免在命令里反复 `cd`。
 - 需要临时补充工具链路径时，在任务内设置 `env`。
 - 修改 Taskfile 后运行 `task --list` 检查任务是否可发现，必要时用 `task --dry <任务名>` 预览执行计划。
@@ -452,7 +483,7 @@ export default defineConfig({
 1. 先用 `rg -n "任务名|脚本名|文件名" Taskfile.yml scripts/tasks` 查清现有引用。
 2. 判断是否需要新增 include；如果是新领域，创建 `scripts/tasks/<领域>/Taskfile.yml` 并在根 `Taskfile.yml` 注册。
 3. 为每个用户可见任务补中文 `desc`。
-4. 确认顶层 `test` 和 `e2e` 任务存在；如果缺失，新增只做转发的稳定入口。
+4. 确认顶层只保留 `run` 和 `test` 稳定入口。
 5. 为运行和测试任务补齐构建依赖，确保任务基于本地最新代码执行。
 6. 为编译、代码生成等无副作用任务补齐 `sources` 和 `generates`。
 7. 不给有副作用的任务配置 `sources` 和 `generates`。
@@ -481,22 +512,33 @@ includes:
     taskfile: ./scripts/tasks/fe
   test:
     taskfile: ./scripts/tasks/test
-  e2e:
-    taskfile: ./scripts/tasks/e2e
 
 tasks:
+  run:
+    desc: "运行本地服务"
+    cmds:
+      - task: run:rpc
+
   test:
     desc: "运行所有测试"
     cmds:
       - task: test:all
-
-  e2e:
-    desc: "运行 E2E 测试"
-    cmds:
-      - task: e2e:all
 ```
 
 ### 测试任务示例
+
+```yaml
+# scripts/tasks/run/Taskfile.yml
+version: 3
+
+tasks:
+  rpc:
+    desc: "运行 RPC 服务"
+    deps:
+      - ":build:bin"
+    cmds:
+      - ./data/rpc/rpc {{.CLI_ARGS}}
+```
 
 ```yaml
 # scripts/tasks/test/Taskfile.yml
@@ -505,19 +547,28 @@ version: 3
 tasks:
   all:
     desc: "运行所有测试"
+    cmds:
+      - task: ut
+      - task: it
+      - task: e2e
+
+  ut:
+    desc: "运行单元测试"
     deps:
       - ":gen:rpc"
     cmds:
-      - go test ./...
-      - task: :e2e:all
-```
+      - mkdir -p ./data/ut
+      - go test ./... -short 2>&1 | tee ./data/ut/test.log
 
-```yaml
-# scripts/tasks/e2e/Taskfile.yml
-version: 3
+  it:
+    desc: "运行集成测试"
+    deps:
+      - ":build:bin"
+    cmds:
+      - mkdir -p ./data/it
+      - go run ./scripts/go-scripts it 2>&1 | tee ./data/it/test.log
 
-tasks:
-  all:
+  e2e:
     desc: "运行 E2E 测试"
     deps:
       - ":build:bin"
@@ -536,11 +587,14 @@ version: 3
 tasks:
   bin:
     desc: "构建后端二进制文件"
-    deps: [":gen:rpc"]
+    deps:
+      - ":gen:rpc"
+      - ":fe:build"
     sources:
       - ./cmd/**
       - ./internal/**
       - ./pkg/**
+      - ./cmd/rpc/static/dist/**
       - ./go.mod
       - ./go.sum
       - ./scripts/go-scripts/**
@@ -549,6 +603,8 @@ tasks:
       - ./data/cli/cli
       - ./data/rpc/rpc
     cmds:
+      - rm -rf ./cmd/rpc/static/dist
+      - cp -R ./fe/dist ./cmd/rpc/static/dist
       - go run ./scripts/go-scripts build
 ```
 
@@ -572,6 +628,24 @@ tasks:
       - pnpm build
 ```
 
+### 集成测试脚本模式
+
+`scripts/go-scripts it` 负责集成测试的复杂逻辑：启动已编译的 Go 服务，等待健康检查通过，使用 Go client 调用服务接口验证行为，并在结束时清理进程。Taskfile 只调用该命令并收集日志。
+
+```go
+// scripts/go-scripts/it.go
+package main
+
+// runIT 启动服务并通过 Go client 验证接口行为。
+func runIT() error {
+    // 启动 ./data/rpc/rpc，并把服务日志写入 ./data/it/server.log
+    // 等待 /healthz 或 RPC healthz 就绪
+    // 使用 Go client 调用服务并断言响应
+    // 测试结束后清理服务进程
+    return nil
+}
+```
+
 ### 常用任务命令
 
 ```bash
@@ -593,11 +667,17 @@ task run:rpc
 # 运行前端开发服务器
 task fe:dev
 
-# 运行指定 E2E 用例
-go-task e2e -- --case <name>
+# 运行本地服务
+go-task run
 
-# 运行全部 E2E 测试
-go-task e2e
+# 单独运行单元测试
+go-task test:ut
+
+# 单独运行集成测试
+go-task test:it
+
+# 单独调试指定 E2E 用例
+go-task test:e2e -- --case <name>
 
 # 运行所有测试（必须包含 E2E）
 go-task test
@@ -607,7 +687,7 @@ go-task test
 
 ## E2E 测试
 
-使用 Python + uv + Playwright 编写 E2E 测试。项目有前端时，`go-task e2e` 必须运行完整的前后端服务，并使用 Python Playwright 编写浏览器调用代码。
+使用 Python + uv + Playwright 编写 E2E 测试。项目有前端时，`go-task test` 必须运行完整的前后端服务，并使用 Python Playwright 编写浏览器调用代码。
 
 每个 case 运行后，都要在 `./data/e2e/<case_name>/` 下输出日志、截图和测试报告；截图需要覆盖所有关键点。测试报告使用 Playwright 自定义 Markdown 报告器实现，参考 https://playwright.net.cn/docs/test-reporters，并在报告中引用关键截图。
 
@@ -631,11 +711,11 @@ def run_test(case_name: str, output_dir: Path, page: Page, logger: logging.Logge
 
 运行方式：
 ```bash
-# 先运行新增或变更的单个用例
-go-task e2e -- --case <name>
+# 先运行新增或变更的单个 E2E 用例
+go-task test:e2e -- --case <name>
 
-# 单个用例通过后运行全部用例
-go-task e2e
+# 单个用例通过后运行全部测试
+go-task test
 ```
 
 ---
@@ -688,16 +768,20 @@ jobs:
    - [ ] 配置 `vite.config.ts` 路径别名
    - [ ] 设置 ESLint 配置
    - [ ] 创建组件结构
+   - [ ] 配置 `fe:build` 输出 `fe/dist`
 
 4. **开发工具配置**
    - [ ] 创建 `Taskfile.yml` 并包含子任务文件
-   - [ ] 配置顶层 `test` 和 `e2e` 入口，且 `go-task test` 必须包含 E2E
+   - [ ] 配置顶层 `run` 入口，且 `go-task run` 必须基于最新构建产物运行
+   - [ ] 配置顶层 `test` 入口，不配置顶层 `e2e` 入口
+   - [ ] 配置 `test:ut`、`test:it` 和 `test:e2e`，且 `go-task test` 必须包含三类测试
    - [ ] 设置 Docker 配置
    - [ ] 配置 GitHub Actions
 
 5. **代码生成**
    - [ ] 运行 `buf generate` 生成 RPC 代码
    - [ ] 验证 Go 和 TypeScript 代码生成结果
+   - [ ] 确认前端 `fe/dist` 已通过 Go `embed` 嵌入后端
 
 ---
 
@@ -715,6 +799,8 @@ jobs:
 
 6. **路径别名**：前端使用 `@/` 作为导入路径前缀
 
-7. **组件架构**：React 组件遵循 shadcn/ui 模式
+7. **前端嵌入后端**：前端需要先编译为 `fe/dist`，再通过 Go `embed` 嵌入到后端服务中；生产运行时由后端直接服务静态资源
 
-8. **任务化构建**：所有构建、运行、部署操作均使用 go-task 管理
+8. **组件架构**：React 组件遵循 shadcn/ui 模式
+
+9. **任务化构建**：所有构建、运行、部署操作均使用 go-task 管理

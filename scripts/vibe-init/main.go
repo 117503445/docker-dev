@@ -42,7 +42,7 @@ func main() {
 	mustCopyFile("codex/hooks.json", filepath.Join(codexDir, "hooks.json"), 0644)
 	mustCopyFS("skills", filepath.Join(codexDir, "skills"))
 	ensureCodexHooksEnabled(filepath.Join(codexDir, "config.toml"))
-	installUIUXProMaxSkill()
+	installUIUXProMaxSkill(home)
 
 	log.Info().Msg("vibe-init completed")
 }
@@ -109,31 +109,98 @@ func copyFS(srcDir, destDir string) error {
 }
 
 // installUIUXProMaxSkill 安装 ui-ux-pro-max skill 到 Claude Code 和 Codex 全局目录。
-func installUIUXProMaxSkill() {
-	mustRunCommand("npm", "install", "-g", "uipro-cli")
-	mustRunCommand("uipro", "init", "--ai", "claude", "--global")
-	mustRunCommand("uipro", "init", "--ai", "codex", "--global")
+func installUIUXProMaxSkill(home string) {
+	if !mustRunCommand("", "npm", "install", "-g", "uipro-cli") {
+		return
+	}
+	installUIUXProMaxSkillForAI(home, "claude")
+	installUIUXProMaxSkillForAI(home, "codex")
+}
+
+// installUIUXProMaxSkillForAI 为指定 AI 助手安装 ui-ux-pro-max skill。
+func installUIUXProMaxSkillForAI(home string, ai string) {
+	tempDir, err := os.MkdirTemp("", "vibe-init-uipro-*")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create temp directory")
+		return
+	}
+	defer os.RemoveAll(tempDir)
+
+	if !mustRunCommand(tempDir, "uipro", "init", "--ai", ai, "--offline") {
+		return
+	}
+
+	srcDir := filepath.Join(tempDir, "."+ai, "skills", "ui-ux-pro-max")
+	destDir := filepath.Join(home, "."+ai, "skills", "ui-ux-pro-max")
+	if !goutils.PathExists(srcDir) {
+		log.Error().Str("path", srcDir).Msg("Generated skill directory does not exist")
+		return
+	}
+	mustCopyLocalDir(srcDir, destDir)
+}
+
+// mustCopyLocalDir 复制本地目录，并在复制前清理目标目录。
+func mustCopyLocalDir(srcDir string, destDir string) {
+	log.Info().Str("src", srcDir).Str("dest", destDir).Msg("Writing local directory")
+	if err := os.RemoveAll(destDir); err != nil {
+		log.Error().Err(err).Str("path", destDir).Msg("Failed to remove directory")
+		return
+	}
+	if err := copyLocalDir(srcDir, destDir); err != nil {
+		log.Error().Err(err).Str("path", destDir).Msg("Failed to write directory")
+	}
+}
+
+// copyLocalDir 递归复制本地目录到目标目录。
+func copyLocalDir(srcDir string, destDir string) error {
+	return filepath.WalkDir(srcDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		relPath, err := filepath.Rel(srcDir, path)
+		if err != nil {
+			return err
+		}
+		destPath := filepath.Join(destDir, relPath)
+
+		if d.IsDir() {
+			return os.MkdirAll(destPath, 0755)
+		}
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(destPath, data, 0644)
+	})
 }
 
 // mustRunCommand 执行外部命令，并在失败时记录命令输出。
-func mustRunCommand(name string, args ...string) {
-	log.Info().Str("command", name).Strs("args", args).Msg("Running command")
+func mustRunCommand(dir string, name string, args ...string) bool {
+	log.Info().Str("dir", dir).Str("command", name).Strs("args", args).Msg("Running command")
 	cmd := exec.Command(name, args...)
+	if dir != "" {
+		cmd.Dir = dir
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Error().
 			Err(err).
+			Str("dir", dir).
 			Str("command", name).
 			Strs("args", args).
 			Str("output", string(output)).
 			Msg("Failed to run command")
-		return
+		return false
 	}
 	log.Info().
+		Str("dir", dir).
 		Str("command", name).
 		Strs("args", args).
 		Str("output", string(output)).
 		Msg("Command completed")
+	return true
 }
 
 // ensureCodexHooksEnabled 确保 Codex 配置启用 hooks 功能。

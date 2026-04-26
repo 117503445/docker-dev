@@ -19,13 +19,16 @@ description: |
 ## 基本原则
 
 - 根目录 `Taskfile.yml` 只做全局配置、`includes` 和稳定入口转发，不要堆积具体业务命令。
-- 领域任务放到 `scripts/tasks/<领域>/Taskfile.yml`，例如 `build`、`run`、`gen`、`deploy`、`format`、`fe`、`test`、`e2e`。
+- 领域任务放到 `scripts/tasks/<领域>/Taskfile.yml`，例如 `build`、`run`、`gen`、`deploy`、`format`、`fe`、`test`。
 - 所有对用户可见的任务必须有中文 `desc`。
 - 可复用但不希望用户直接调用的任务设置 `internal: true`。
 - 跨 include 依赖使用完整命名空间，例如 `:base:clear`、`:build:bin`。
 - 任务命名使用小写短横线或既有项目风格；同一仓库内保持一致。
+- 保留顶层 `run` 命令作为本地运行入口，默认运行完整后端服务，并依赖必要构建任务。
 - 保留顶层 `test` 命令作为全量测试入口，必须覆盖单元测试、集成测试和 E2E 测试。
-- 保留顶层 `e2e` 命令作为 E2E 测试入口，并支持 `go-task e2e -- --case <name>` 运行单个用例。
+- `scripts/tasks/test/Taskfile.yml` 必须提供 `ut`、`it`、`e2e` 和 `all` 任务，对应 `go-task test:ut`、`go-task test:it`、`go-task test:e2e` 和 `go-task test`。
+- `test:ut` 的日志必须输出到 `./data/ut/`；`test:it` 的日志必须输出到 `./data/it/`。
+- 集成测试指先编译并启动一个 Go 服务，再使用 Go client 调用该服务验证行为；启动、等待、调用和清理逻辑写在 `scripts/go-scripts it` 中。
 - Taskfile 不能包含复杂逻辑，越简单越好；复杂逻辑写在 `scripts/go-scripts/` 中，再由 Taskfile 调用。
 - 所有任务都要确保基于本地最新代码执行；运行、测试、E2E 等任务必须通过 `deps` 依赖必要的生成或构建任务，例如 E2E 依赖后端和前端构建。
 - 编译、代码生成等无副作用任务应写好 `sources` 和 `generates`，确保代码不变时不重新执行。
@@ -58,19 +61,17 @@ includes:
     taskfile: ./scripts/tasks/fe
   test:
     taskfile: ./scripts/tasks/test
-  e2e:
-    taskfile: ./scripts/tasks/e2e
 
 tasks:
+  run:
+    desc: "运行本地服务"
+    cmds:
+      - task: run:rpc
+
   test:
     desc: "运行所有测试"
     cmds:
       - task: test:all
-
-  e2e:
-    desc: "运行 E2E 测试"
-    cmds:
-      - task: e2e:all
 ```
 
 领域任务文件 `scripts/tasks/build/Taskfile.yml`：
@@ -100,6 +101,32 @@ tasks:
 
 ## 常用模式
 
+### run 入口
+
+项目应保留稳定的 `run` 顶层任务，作为本地运行入口。`run` 本身只做转发，具体运行逻辑放到 `scripts/tasks/run/Taskfile.yml`。
+
+```yaml
+tasks:
+  run:
+    desc: "运行本地服务"
+    cmds:
+      - task: run:rpc
+```
+
+`scripts/tasks/run/Taskfile.yml` 示例：
+
+```yaml
+version: 3
+
+tasks:
+  rpc:
+    desc: "运行 RPC 服务"
+    deps:
+      - ":build:bin"
+    cmds:
+      - ./data/rpc/rpc {{.CLI_ARGS}}
+```
+
 ### 清屏和默认任务
 
 ```yaml
@@ -120,9 +147,9 @@ tasks:
       - task: run:cli-run
 ```
 
-### test 和 e2e 入口
+### test 入口
 
-项目应保留稳定的 `test` 和 `e2e` 顶层任务。`test` 是全量测试入口，必须包含 E2E；`e2e` 是 E2E 专用入口，需要支持单个 case 参数。
+项目应保留稳定的 `test` 顶层任务，作为全量测试入口。单元测试、集成测试和 E2E 都放在 `test` 命名空间下，不提供独立 E2E 顶层入口。
 
 ```yaml
 tasks:
@@ -130,11 +157,6 @@ tasks:
     desc: "运行所有测试"
     cmds:
       - task: test:all
-
-  e2e:
-    desc: "运行 E2E 测试"
-    cmds:
-      - task: e2e:all
 ```
 
 `scripts/tasks/test/Taskfile.yml` 示例：
@@ -145,20 +167,28 @@ version: 3
 tasks:
   all:
     desc: "运行所有测试"
+    cmds:
+      - task: ut
+      - task: it
+      - task: e2e
+
+  ut:
+    desc: "运行单元测试"
     deps:
       - ":gen:rpc"
     cmds:
-      - go test ./...
-      - task: :e2e:all
-```
+      - mkdir -p ./data/ut
+      - go test ./... -short 2>&1 | tee ./data/ut/test.log
 
-`scripts/tasks/e2e/Taskfile.yml` 示例：
+  it:
+    desc: "运行集成测试"
+    deps:
+      - ":build:bin"
+    cmds:
+      - mkdir -p ./data/it
+      - go run ./scripts/go-scripts it 2>&1 | tee ./data/it/test.log
 
-```yaml
-version: 3
-
-tasks:
-  all:
+  e2e:
     desc: "运行 E2E 测试"
     deps:
       - ":build:bin"
@@ -203,6 +233,10 @@ tasks:
 ```bash
 task build:docker -- --push
 ```
+
+### 集成测试脚本
+
+`test:it` 只负责调用 `scripts/go-scripts it` 并收集日志。`scripts/go-scripts it` 内部负责启动已编译的 Go 服务、等待健康检查通过、使用 Go client 调用服务接口验证行为，并在结束时清理服务进程。
 
 ### 指定工作目录
 
@@ -254,22 +288,22 @@ tasks:
 1. 先用 `rg -n "任务名|脚本名|文件名" Taskfile.yml scripts/tasks` 查清现有引用。
 2. 判断是否需要新增 include；如果是新领域，创建 `scripts/tasks/<领域>/Taskfile.yml` 并在根 `Taskfile.yml` 注册。
 3. 为每个用户可见任务补中文 `desc`。
-4. 确认顶层 `test` 和 `e2e` 任务存在；如果缺失，新增只做转发的稳定入口。
+4. 确认顶层只保留 `run` 和 `test` 稳定入口。
 5. 为运行和测试任务补齐构建依赖，确保任务基于本地最新代码执行。
 6. 为编译、代码生成等无副作用任务补齐 `sources` 和 `generates`，让 go-task 缓存判断可靠。
 7. 不给有副作用的任务配置 `sources` 和 `generates`。
 8. 跨领域依赖写成 `:领域:任务`，避免相对 include 解析歧义。
 9. 修改后运行 `task --list` 检查任务是否可发现。
-10. 按项目约定运行测试；代码变更后运行 `go-task test`，E2E 变更先运行 `go-task e2e -- --case <name>` 再运行 `go-task e2e`。
+10. 按项目约定运行测试；代码变更后运行 `go-task test`，E2E 变更可先运行 `go-task test:e2e -- --case <name>` 调试单个用例。
 
 ## 测试流程
 
-如果项目可以运行 `go-task e2e`，并且本次需要修改代码：
+如果项目可以运行 `go-task test`，并且本次需要修改代码：
 
 1. 先在测试用例中覆盖新增需求。
-2. 运行 `go-task e2e -- --case <name>`，预期先因为新增用例失败。
+2. E2E 变更先运行 `go-task test:e2e -- --case <name>`，预期先因为新增用例失败。
 3. 修改实现代码。
-4. 再运行 `go-task e2e -- --case <name>`，直到通过。
+4. 再运行 `go-task test:e2e -- --case <name>`，直到通过。
 5. 运行 `go-task test`，确认所有测试通过。
 6. 密钥文件必须放在 `.env` 中，并在代码中主动加载 `.env`。
 7. 不应进入版本控制的生成文件、缓存、日志和构建产物必须用 `.gitignore` 排除。
@@ -300,22 +334,24 @@ task --dry <任务名>
 task --force <任务名>
 ```
 
-- 运行 E2E 测试和所有测试：
+- 运行本地服务和测试：
 
 ```bash
-go-task e2e -- --case <name>
-go-task e2e
+go-task run
+go-task test:ut
+go-task test:it
+go-task test:e2e -- --case <name>
 go-task test
 ```
 
 ## 验收标准
 
 - `task --list` 中的任务描述为中文。
+- 顶层保留可执行的 `run` 本地运行任务。
 - 顶层保留可执行的 `test` 全量测试任务。
-- 顶层保留可执行的 `e2e` E2E 测试任务。
 - 根 `Taskfile.yml` 保持轻量，只负责 `dotenv`、`includes` 和稳定入口转发。
 - 领域任务文件路径稳定，命名空间清晰。
 - 依赖链可执行，不依赖当前 shell 的隐式工作目录。
 - 运行、测试、E2E 任务通过 `deps` 依赖必要的构建任务，避免使用过期构建产物。
 - 编译和代码生成任务配置了准确的 `sources` 和 `generates`；有副作用任务没有配置这些缓存字段。
-- 项目要求的验证命令通过，例如 `go-task e2e` 和 `go-task test`。
+- 项目要求的验证命令通过，例如 `go-task run` 和 `go-task test`。
