@@ -4,6 +4,7 @@ import (
 	"embed"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -14,6 +15,7 @@ import (
 //go:embed AGENTS.md claude/settings.json codex/hooks.json hooks/vibe_hook.js all:skills
 var embedFS embed.FS
 
+// main 初始化 Claude Code、Codex 和共享 UI/UX skill。
 func main() {
 	goutils.InitZeroLog()
 	log.Info().Msg("Starting vibe-init")
@@ -40,10 +42,12 @@ func main() {
 	mustCopyFile("codex/hooks.json", filepath.Join(codexDir, "hooks.json"), 0644)
 	mustCopyFS("skills", filepath.Join(codexDir, "skills"))
 	ensureCodexHooksEnabled(filepath.Join(codexDir, "config.toml"))
+	installUIUXProMaxSkill()
 
 	log.Info().Msg("vibe-init completed")
 }
 
+// mustMkdirAll 确保目录存在。
 func mustMkdirAll(path string) {
 	if !goutils.PathExists(path) {
 		log.Info().Str("path", path).Msg("Creating directory")
@@ -53,6 +57,7 @@ func mustMkdirAll(path string) {
 	}
 }
 
+// mustCopyFile 从内嵌文件系统复制单个文件。
 func mustCopyFile(srcPath string, destPath string, perm fs.FileMode) {
 	log.Info().Str("src", srcPath).Str("dest", destPath).Msg("Writing embedded file")
 	content, err := embedFS.ReadFile(srcPath)
@@ -63,12 +68,14 @@ func mustCopyFile(srcPath string, destPath string, perm fs.FileMode) {
 	mustWriteText(destPath, string(content), perm)
 }
 
+// mustWriteText 写入文本文件。
 func mustWriteText(path string, content string, perm fs.FileMode) {
 	if err := os.WriteFile(path, []byte(content), perm); err != nil {
 		log.Error().Err(err).Str("path", path).Msg("Failed to write file")
 	}
 }
 
+// mustCopyFS 从内嵌文件系统复制目录。
 func mustCopyFS(srcDir, destDir string) {
 	log.Info().Str("src", srcDir).Str("dest", destDir).Msg("Writing embedded directory")
 	if err := copyFS(srcDir, destDir); err != nil {
@@ -76,6 +83,7 @@ func mustCopyFS(srcDir, destDir string) {
 	}
 }
 
+// copyFS 递归复制内嵌目录到目标目录。
 func copyFS(srcDir, destDir string) error {
 	return fs.WalkDir(embedFS, srcDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -100,6 +108,35 @@ func copyFS(srcDir, destDir string) error {
 	})
 }
 
+// installUIUXProMaxSkill 安装 ui-ux-pro-max skill 到 Claude Code 和 Codex 全局目录。
+func installUIUXProMaxSkill() {
+	mustRunCommand("npm", "install", "-g", "uipro-cli")
+	mustRunCommand("uipro", "init", "--ai", "claude", "--global")
+	mustRunCommand("uipro", "init", "--ai", "codex", "--global")
+}
+
+// mustRunCommand 执行外部命令，并在失败时记录命令输出。
+func mustRunCommand(name string, args ...string) {
+	log.Info().Str("command", name).Strs("args", args).Msg("Running command")
+	cmd := exec.Command(name, args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("command", name).
+			Strs("args", args).
+			Str("output", string(output)).
+			Msg("Failed to run command")
+		return
+	}
+	log.Info().
+		Str("command", name).
+		Strs("args", args).
+		Str("output", string(output)).
+		Msg("Command completed")
+}
+
+// ensureCodexHooksEnabled 确保 Codex 配置启用 hooks 功能。
 func ensureCodexHooksEnabled(configPath string) {
 	data, err := os.ReadFile(configPath)
 	if err != nil && !os.IsNotExist(err) {

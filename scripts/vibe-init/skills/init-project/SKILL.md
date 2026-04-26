@@ -16,6 +16,19 @@ description: |
 
 ---
 
+## 项目约束
+
+- 文档和注释使用中文；每个方法需要有中文注释，代码块内只在必要处添加精简注释。
+- 前端使用 TypeScript 编写；没有特殊声明时，其他代码和脚本使用 Go 编写。
+- E2E 测试入口统一使用 `go-task e2e`。
+- 如果需要修改代码，并且项目可以运行 `go-task e2e`，先在测试用例中覆盖新增需求，运行 `go-task e2e -- --case <name>` 并确认失败；实现后继续运行该命令直到成功，最后运行 `go-task e2e`。
+- 全量测试入口统一使用 `go-task test`；该任务必须运行所有测试，包括单元测试、集成测试和 E2E 测试。
+- 修改后必须运行 `go-task test`，并保证通过。
+- Taskfile 不能包含复杂逻辑，越简单越好；如果需要复杂逻辑，写在 `scripts/go-scripts/` 中，再由 Taskfile 调用。
+- 密钥文件必须放在 `.env` 中，代码需要主动加载 `.env`；不应进入版本控制的文件需要加入 `.gitignore`。
+
+---
+
 ## 技术栈概览
 
 ### 后端 (Go)
@@ -136,8 +149,9 @@ project-root/
 │   │   ├── deploy/
 │   │   ├── format/
 │   │   ├── fe/
+│   │   ├── test/
 │   │   └── e2e/
-│   └── e2e/                    # E2E 测试（Python/playwright）
+│   └── e2e/                    # E2E 测试（Python Playwright）
 │       ├── main.py
 │       ├── pyproject.toml
 │       ├── uv.lock
@@ -172,10 +186,12 @@ import (
     "github.com/rs/zerolog/log"
 )
 
+// init 初始化结构化日志。
 func init() {
     glog.InitZeroLog()
 }
 
+// main 输出结构化日志示例。
 func main() {
     log.Info().
         Str("key", value).
@@ -198,6 +214,7 @@ var cli struct {
 }
 
 // main.go
+// main 解析 CLI 命令并执行。
 func main() {
     ctx := kong.Parse(&cli)
     log.Info().Interface("cli", cli).Send()
@@ -215,10 +232,12 @@ type TemplateHandler struct {
     // 依赖项
 }
 
+// NewTemplateHandler 创建模板 RPC 处理器。
 func NewTemplateHandler() *TemplateHandler {
     return &TemplateHandler{}
 }
 
+// Healthz 返回服务健康状态和版本信息。
 func (h *TemplateHandler) Healthz(
     ctx context.Context,
     req *connect.Request[rpc.HealthzRequest],
@@ -325,6 +344,7 @@ interface DataState {
   status: 'loading' | 'success' | 'error'
 }
 
+// MyComponent 展示数据加载状态。
 function MyComponent() {
   const [data, setData] = useState<DataState>({
     value: '',
@@ -410,6 +430,35 @@ export default defineConfig({
 
 ## 任务运行器 (go-task)
 
+### Taskfile 最佳实践
+
+- 根目录 `Taskfile.yml` 只做全局配置、`includes` 和稳定入口转发，不写具体业务逻辑。
+- 领域任务放到 `scripts/tasks/<领域>/Taskfile.yml`，例如 `build`、`run`、`gen`、`deploy`、`format`、`fe`、`test`、`e2e`。
+- 所有对用户可见的任务必须有中文 `desc`；复用但不希望直接调用的任务设置 `internal: true`。
+- 跨 include 依赖使用完整命名空间，例如 `:base:clear`、`:build:bin`；依赖链不能依赖当前 shell 的隐式工作目录。
+- 任务命名使用小写短横线或既有项目风格；同一仓库内保持一致。
+- Taskfile 不能包含复杂逻辑，越简单越好；复杂逻辑写在 `scripts/go-scripts/` 中，再由 Taskfile 调用。
+- 所有任务都要确保基于本地最新代码执行；运行、测试、E2E 等任务必须通过 `deps` 依赖必要的生成或构建任务，例如 E2E 依赖后端和前端构建。
+- 编译、代码生成等无副作用任务应写好 `sources` 和 `generates`，确保代码不变时不重新执行。
+- 有副作用的任务不要配置 `sources` 和 `generates`，例如 `run`、`deploy`、`test`、`e2e`。
+- 需要传递用户参数时使用 `{{.CLI_ARGS}}`，例如 `go-task e2e -- --case <name>`。
+- 前端、E2E 等子项目优先使用 `dir`，避免在命令里反复 `cd`。
+- 需要临时补充工具链路径时，在任务内设置 `env`。
+- 修改 Taskfile 后运行 `task --list` 检查任务是否可发现，必要时用 `task --dry <任务名>` 预览执行计划。
+- 需要跳过缓存强制执行时使用 `task --force <任务名>`。
+
+### Taskfile 修改流程
+
+1. 先用 `rg -n "任务名|脚本名|文件名" Taskfile.yml scripts/tasks` 查清现有引用。
+2. 判断是否需要新增 include；如果是新领域，创建 `scripts/tasks/<领域>/Taskfile.yml` 并在根 `Taskfile.yml` 注册。
+3. 为每个用户可见任务补中文 `desc`。
+4. 确认顶层 `test` 和 `e2e` 任务存在；如果缺失，新增只做转发的稳定入口。
+5. 为运行和测试任务补齐构建依赖，确保任务基于本地最新代码执行。
+6. 为编译、代码生成等无副作用任务补齐 `sources` 和 `generates`。
+7. 不给有副作用的任务配置 `sources` 和 `generates`。
+8. 跨领域依赖写成 `:领域:任务`。
+9. 修改后运行 `task --list`，再按项目要求运行 `go-task test`。
+
 ### 主 Taskfile.yml
 
 ```yaml
@@ -430,8 +479,97 @@ includes:
     taskfile: ./scripts/tasks/format
   fe:
     taskfile: ./scripts/tasks/fe
+  test:
+    taskfile: ./scripts/tasks/test
   e2e:
     taskfile: ./scripts/tasks/e2e
+
+tasks:
+  test:
+    desc: "运行所有测试"
+    cmds:
+      - task: test:all
+
+  e2e:
+    desc: "运行 E2E 测试"
+    cmds:
+      - task: e2e:all
+```
+
+### 测试任务示例
+
+```yaml
+# scripts/tasks/test/Taskfile.yml
+version: 3
+
+tasks:
+  all:
+    desc: "运行所有测试"
+    deps:
+      - ":gen:rpc"
+    cmds:
+      - go test ./...
+      - task: :e2e:all
+```
+
+```yaml
+# scripts/tasks/e2e/Taskfile.yml
+version: 3
+
+tasks:
+  all:
+    desc: "运行 E2E 测试"
+    deps:
+      - ":build:bin"
+      - ":fe:build"
+    dir: ./scripts/e2e
+    cmds:
+      - uv run main.py {{.CLI_ARGS}}
+```
+
+### 构建任务缓存示例
+
+```yaml
+# scripts/tasks/build/Taskfile.yml
+version: 3
+
+tasks:
+  bin:
+    desc: "构建后端二进制文件"
+    deps: [":gen:rpc"]
+    sources:
+      - ./cmd/**
+      - ./internal/**
+      - ./pkg/**
+      - ./go.mod
+      - ./go.sum
+      - ./scripts/go-scripts/**
+      - ./scripts/tasks/**
+    generates:
+      - ./data/cli/cli
+      - ./data/rpc/rpc
+    cmds:
+      - go run ./scripts/go-scripts build
+```
+
+```yaml
+# scripts/tasks/fe/Taskfile.yml
+version: 3
+
+tasks:
+  build:
+    desc: "构建前端"
+    dir: ./fe
+    sources:
+      - ./package.json
+      - ./pnpm-lock.yaml
+      - ./index.html
+      - ./vite.config.ts
+      - ./src/**
+    generates:
+      - ./dist/**
+    cmds:
+      - pnpm build
 ```
 
 ### 常用任务命令
@@ -455,26 +593,49 @@ task run:rpc
 # 运行前端开发服务器
 task fe:dev
 
-# 运行 E2E 测试
-task e2e:test
+# 运行指定 E2E 用例
+go-task e2e -- --case <name>
+
+# 运行全部 E2E 测试
+go-task e2e
+
+# 运行所有测试（必须包含 E2E）
+go-task test
 ```
 
 ---
 
 ## E2E 测试
 
-使用 Python + uv 运行 E2E 测试：
+使用 Python + uv + Playwright 编写 E2E 测试。项目有前端时，`go-task e2e` 必须运行完整的前后端服务，并使用 Python Playwright 编写浏览器调用代码。
+
+每个 case 运行后，都要在 `./data/e2e/<case_name>/` 下输出日志、截图和测试报告；截图需要覆盖所有关键点。测试报告使用 Playwright 自定义 Markdown 报告器实现，参考 https://playwright.net.cn/docs/test-reporters，并在报告中引用关键截图。
 
 ```python
 # scripts/e2e/main.py
-def run_test(output_dir: Path, screenshots_dir: Path, logs_dir: Path, logger: logging.Logger) -> bool:
-    # 测试实现
+def run_test(case_name: str, output_dir: Path, page: Page, logger: logging.Logger) -> bool:
+    """运行单个 E2E 用例，并输出日志、截图和 Markdown 报告。"""
+    case_dir = output_dir / case_name
+    screenshots_dir = case_dir / "screenshots"
+    logs_dir = case_dir / "logs"
+    report_path = case_dir / "report.md"
+
+    screenshots_dir.mkdir(parents=True, exist_ok=True)
+    logs_dir.mkdir(parents=True, exist_ok=True)
+
+    # 关键点截图需要写入报告，便于回放失败现场
+    page.screenshot(path=screenshots_dir / "home.png", full_page=True)
+    report_path.write_text("# E2E 测试报告\n\n![首页截图](screenshots/home.png)\n", encoding="utf-8")
     return True
 ```
 
 运行方式：
 ```bash
-cd scripts/e2e && uv run main.py
+# 先运行新增或变更的单个用例
+go-task e2e -- --case <name>
+
+# 单个用例通过后运行全部用例
+go-task e2e
 ```
 
 ---
@@ -530,6 +691,7 @@ jobs:
 
 4. **开发工具配置**
    - [ ] 创建 `Taskfile.yml` 并包含子任务文件
+   - [ ] 配置顶层 `test` 和 `e2e` 入口，且 `go-task test` 必须包含 E2E
    - [ ] 设置 Docker 配置
    - [ ] 配置 GitHub Actions
 
