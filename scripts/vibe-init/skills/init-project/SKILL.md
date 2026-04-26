@@ -22,7 +22,7 @@ description: |
 - 前端使用 TypeScript 编写；没有特殊声明时，其他代码和脚本使用 Go 编写。
 - 测试入口统一使用 `go-task test`；该任务必须运行所有测试，包括单元测试、集成测试和 E2E 测试。
 - 不保留独立 E2E 顶层入口；单独调试 E2E 时使用 `go-task test:e2e -- --case <name>`。
-- 如果需要修改代码，并且项目可以运行 `go-task test`，先在测试用例中覆盖新增需求；E2E 变更先运行 `go-task test:e2e -- --case <name>` 并确认失败，实现后继续运行该命令直到成功，最后运行 `go-task test`。
+- 如果需要修改代码，并且项目可以运行 `go-task test`，根据变更风险判断是否需要新增测试用例；影响用户流程或存在回归风险时补充 E2E，否则优先使用 UT、IT 或已有 E2E 覆盖。新增 E2E 时先运行 `go-task test:e2e -- --case <name>` 并确认失败，实现后继续运行该命令直到成功，最后运行 `go-task test`。
 - `test:ut` 的日志必须输出到 `./data/ut/`；`test:it` 的日志必须输出到 `./data/it/`。
 - 集成测试指先编译并启动一个 Go 服务，再使用 Go client 调用该服务验证行为；启动、等待、调用和清理逻辑写在 `scripts/go-scripts it` 中。
 - 本地运行入口统一使用 `go-task run`。
@@ -711,10 +711,10 @@ def run_test(case_name: str, output_dir: Path, page: Page, logger: logging.Logge
 
 运行方式：
 ```bash
-# 先运行新增或变更的单个 E2E 用例
+# 如需新增或调试 E2E，用单个 case 先验证
 go-task test:e2e -- --case <name>
 
-# 单个用例通过后运行全部测试
+# 最后运行全部测试
 go-task test
 ```
 
