@@ -25,9 +25,13 @@ description: |
 - 如果需要修改代码，并且项目可以运行 `go-task test`，根据变更风险判断是否需要新增测试用例；影响用户流程或存在回归风险时补充 E2E，否则优先使用 UT、IT 或已有 E2E 覆盖。新增 E2E 时先运行 `go-task test:e2e -- --case <name>` 并确认失败，实现后继续运行该命令直到成功，最后运行 `go-task test`。
 - `test:ut` 的日志必须输出到 `./data/ut/`；`test:it` 的日志必须输出到 `./data/it/`。
 - 集成测试指先编译并启动一个 Go 服务，再使用 Go client 调用该服务验证行为；启动、等待、调用和清理逻辑写在 `scripts/go-scripts it` 中。
+- 每个 IT/E2E case 都必须自己启动一套新的服务，运行测试代码，把服务日志输出到自己的 case 目录，最后关闭这套服务，避免 case 间共享服务状态。
+- IT/E2E 的 `server.log` 不要输出 ASCII/ANSI 颜色控制字符；启动服务时需要传入 `nocolor` 参数，并让 zerolog console writer 禁用颜色。
 - 本地运行入口统一使用 `go-task run`。
 - 修改后必须运行 `go-task test`，并保证通过。
 - Taskfile 不能包含复杂逻辑，越简单越好；如果需要复杂逻辑，写在 `scripts/go-scripts/` 中，再由 Taskfile 调用。
+- `scripts/go-scripts` 根包只负责 CLI 解析、命令注册和分发；每个命令的实际实现必须放到子模块（Go 子包），例如 `scripts/go-scripts/internal/build`、`scripts/go-scripts/internal/it`、`scripts/go-scripts/internal/e2e`，不要把 `build.go`、`release.go` 这类实现文件直接放在根包。
+- E2E 如需浏览器自动化或 Playwright，必须使用 Go 和 `github.com/playwright-community/playwright-go` 实现，不使用 Python Playwright。
 - 密钥文件必须放在 `.env` 中，代码需要主动加载 `.env`；不应进入版本控制的文件需要加入 `.gitignore`。
 
 ---
@@ -57,6 +61,7 @@ description: |
 - **GitHub Actions** - CI/CD
 - **pnpm** - 前端包管理器
 - **buf** - Protobuf 代码检查与生成
+- **playwright-go** (`github.com/playwright-community/playwright-go`) - Go E2E 浏览器自动化
 
 ---
 
@@ -137,13 +142,16 @@ project-root/
 │   │   └── dev.Dockerfile
 │   ├── go-scripts/             # Go 编写的构建脚本
 │   │   ├── main.go
-│   │   ├── cli.go
-│   │   ├── build.go
-│   │   ├── release.go
-│   │   ├── deploy.go
-│   │   ├── build-docker.go
-│   │   ├── format.go
-│   │   └── invoke.go
+│   │   ├── cli.go              # 命令定义和分发
+│   │   └── internal/           # 每个命令的实际实现子模块（Go 子包）
+│   │       ├── build/
+│   │       ├── release/
+│   │       ├── deploy/
+│   │       ├── docker/
+│   │       ├── format/
+│   │       ├── invoke/
+│   │       ├── it/
+│   │       └── e2e/            # 使用 playwright-go 的 E2E 实现
 │   ├── tasks/                  # Taskfile 包含文件
 │   │   ├── base/
 │   │   ├── build/
@@ -153,12 +161,6 @@ project-root/
 │   │   ├── format/
 │   │   ├── fe/
 │   │   └── test/
-│   └── e2e/                    # E2E 测试（Python Playwright）
-│       ├── main.py
-│       ├── pyproject.toml
-│       ├── uv.lock
-│       ├── cases/
-│       └── lib/
 │
 ├── data/                       # 构建输出与运行时数据
 │   ├── cli/
@@ -469,6 +471,8 @@ func newStaticHandler() http.Handler {
 - 跨 include 依赖使用完整命名空间，例如 `:base:clear`、`:build:bin`；依赖链不能依赖当前 shell 的隐式工作目录。
 - 任务命名使用小写短横线或既有项目风格；同一仓库内保持一致。
 - Taskfile 不能包含复杂逻辑，越简单越好；复杂逻辑写在 `scripts/go-scripts/` 中，再由 Taskfile 调用。
+- `scripts/go-scripts` 根包只负责 CLI 解析、命令注册和分发；每个命令的实际实现必须放到子模块（Go 子包），例如 `scripts/go-scripts/internal/build`、`scripts/go-scripts/internal/it`、`scripts/go-scripts/internal/e2e`，不要把 `build.go`、`release.go` 这类实现文件直接放在根包。
+- E2E 如需浏览器自动化或 Playwright，必须使用 Go 和 `github.com/playwright-community/playwright-go` 实现，不使用 Python Playwright。
 - 所有任务都要确保基于本地最新代码执行；运行、测试、E2E 等任务必须通过 `deps` 依赖必要的生成或构建任务，例如 E2E 依赖后端和前端构建。
 - 编译、代码生成等无副作用任务应写好 `sources` 和 `generates`，确保代码不变时不重新执行。
 - 有副作用的任务不要配置 `sources` 和 `generates`，例如 `run`、`deploy`、`test`、`e2e`。
@@ -573,9 +577,8 @@ tasks:
     deps:
       - ":build:bin"
       - ":fe:build"
-    dir: ./scripts/e2e
     cmds:
-      - uv run main.py {{.CLI_ARGS}}
+      - go run ./scripts/go-scripts e2e {{.CLI_ARGS}}
 ```
 
 ### 构建任务缓存示例
@@ -628,20 +631,39 @@ tasks:
       - pnpm build
 ```
 
+### go-scripts 命令结构
+
+`scripts/go-scripts/main.go` 和 `scripts/go-scripts/cli.go` 只负责初始化、CLI 解析和命令分发。每个命令的实际实现放到独立子模块（Go 子包），避免根包文件过大。
+
+```text
+scripts/go-scripts/
+├── main.go
+├── cli.go
+└── internal/
+    ├── build/
+    ├── release/
+    ├── deploy/
+    ├── docker/
+    ├── format/
+    ├── invoke/
+    ├── it/
+    └── e2e/
+```
+
 ### 集成测试脚本模式
 
-`scripts/go-scripts it` 负责集成测试的复杂逻辑：启动已编译的 Go 服务，等待健康检查通过，使用 Go client 调用服务接口验证行为，并在结束时清理进程。Taskfile 只调用该命令并收集日志。
+`scripts/go-scripts it` 负责集成测试的复杂逻辑：按 case 启动已编译的 Go 服务，等待健康检查通过，使用 Go client 调用服务接口验证行为，并在每个 case 结束时清理进程。Taskfile 只调用该命令并收集日志。每个 case 的服务日志写入 `./data/it/<case_name>/server.log`。启动服务时传入 `nocolor` 参数，使服务端 zerolog console writer 禁用颜色，避免 `server.log` 写入 ASCII/ANSI 颜色控制字符。
 
 ```go
-// scripts/go-scripts/it.go
-package main
+// scripts/go-scripts/internal/it/it.go
+package it
 
-// runIT 启动服务并通过 Go client 验证接口行为。
-func runIT() error {
-    // 启动 ./data/rpc/rpc，并把服务日志写入 ./data/it/server.log
+// Run 启动服务并通过 Go client 验证接口行为。
+func Run() error {
+    // 为每个 case 启动 ./data/rpc/rpc，传入 nocolor 参数，并把服务日志写入 ./data/it/<case_name>/server.log
     // 等待 /healthz 或 RPC healthz 就绪
     // 使用 Go client 调用服务并断言响应
-    // 测试结束后清理服务进程
+    // 每个 case 结束后清理自己的服务进程
     return nil
 }
 ```
@@ -687,26 +709,74 @@ go-task test
 
 ## E2E 测试
 
-使用 Python + uv + Playwright 编写 E2E 测试。项目有前端时，`go-task test` 必须运行完整的前后端服务，并使用 Python Playwright 编写浏览器调用代码。
+使用 Go + `github.com/playwright-community/playwright-go` 编写 E2E 测试。项目有前端时，`go-task test` 必须运行完整的前后端服务，并通过 `scripts/go-scripts e2e` 运行浏览器调用代码。
 
-每个 case 运行后，都要在 `./data/e2e/<case_name>/` 下输出日志、截图和测试报告；截图需要覆盖所有关键点。测试报告使用 Playwright 自定义 Markdown 报告器实现，参考 https://playwright.net.cn/docs/test-reporters，并在报告中引用关键截图。
+每个 E2E case 都要独立启动一套新的服务，运行浏览器测试代码，把服务日志输出到 `./data/e2e/<case_name>/logs/server.log`，最后关闭这套服务。启动服务时传入 `nocolor` 参数，使服务端 zerolog console writer 禁用颜色，避免 `server.log` 写入 ASCII/ANSI 颜色控制字符。每个 case 运行后，都要在 `./data/e2e/<case_name>/` 下输出日志、截图和测试报告；截图需要覆盖所有关键点。首次运行或 CI 初始化时，按 `go.mod` 中的 playwright-go 版本安装浏览器驱动，或在代码中显式调用 `playwright.Install()`。
 
-```python
-# scripts/e2e/main.py
-def run_test(case_name: str, output_dir: Path, page: Page, logger: logging.Logger) -> bool:
-    """运行单个 E2E 用例，并输出日志、截图和 Markdown 报告。"""
-    case_dir = output_dir / case_name
-    screenshots_dir = case_dir / "screenshots"
-    logs_dir = case_dir / "logs"
-    report_path = case_dir / "report.md"
+```go
+// scripts/go-scripts/internal/e2e/e2e.go
+package e2e
 
-    screenshots_dir.mkdir(parents=True, exist_ok=True)
-    logs_dir.mkdir(parents=True, exist_ok=True)
+import (
+    "context"
+    "os"
+    "path/filepath"
 
-    # 关键点截图需要写入报告，便于回放失败现场
-    page.screenshot(path=screenshots_dir / "home.png", full_page=True)
-    report_path.write_text("# E2E 测试报告\n\n![首页截图](screenshots/home.png)\n", encoding="utf-8")
-    return True
+    "github.com/playwright-community/playwright-go"
+)
+
+// Run 执行单个 E2E 用例。
+// ctx 参数控制测试超时和取消。
+// caseName 参数指定用例名称。
+func Run(ctx context.Context, caseName string) error {
+    caseDir := filepath.Join("data", "e2e", caseName)
+    screenshotsDir := filepath.Join(caseDir, "screenshots")
+    logsDir := filepath.Join(caseDir, "logs")
+    reportPath := filepath.Join(caseDir, "report.md")
+
+    if err := os.MkdirAll(screenshotsDir, 0o755); err != nil {
+        return err
+    }
+    if err := os.MkdirAll(logsDir, 0o755); err != nil {
+        return err
+    }
+
+    pw, err := playwright.Run()
+    if err != nil {
+        return err
+    }
+    defer pw.Stop()
+
+    browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
+        Headless: playwright.Bool(true),
+    })
+    if err != nil {
+        return err
+    }
+    defer browser.Close()
+
+    page, err := browser.NewPage()
+    if err != nil {
+        return err
+    }
+
+    // 每个 case 独立启动服务，传入 nocolor 参数，服务日志写入 logs/server.log，结束后关闭服务
+    if _, err := page.Goto("http://127.0.0.1:8080"); err != nil {
+        return err
+    }
+
+    // 关键点截图需要写入报告，便于回放失败现场
+    screenshotPath := filepath.Join(screenshotsDir, "home.png")
+    if _, err := page.Screenshot(playwright.PageScreenshotOptions{
+        Path:     playwright.String(screenshotPath),
+        FullPage: playwright.Bool(true),
+    }); err != nil {
+        return err
+    }
+
+    report := "# E2E 测试报告\n\n![首页截图](screenshots/home.png)\n"
+    return os.WriteFile(reportPath, []byte(report), 0o644)
+}
 ```
 
 运行方式：
@@ -760,7 +830,7 @@ jobs:
    - [ ] 在 `pkg/rpc/` 中定义 proto 文件
    - [ ] 在 `cmd/` 中创建主入口文件
    - [ ] 设置 buildinfo 包
-   - [ ] 在 `scripts/go-scripts/` 中创建构建脚本
+   - [ ] 在 `scripts/go-scripts/internal/<command>/` 中创建各命令实际实现
 
 3. **前端设置**
    - [ ] 使用 Vite 初始化：`pnpm create vite`
@@ -775,6 +845,7 @@ jobs:
    - [ ] 配置顶层 `run` 入口，且 `go-task run` 必须基于最新构建产物运行
    - [ ] 配置顶层 `test` 入口，不配置顶层 `e2e` 入口
    - [ ] 配置 `test:ut`、`test:it` 和 `test:e2e`，且 `go-task test` 必须包含三类测试
+   - [ ] 如需浏览器 E2E，使用 `github.com/playwright-community/playwright-go`
    - [ ] 设置 Docker 配置
    - [ ] 配置 GitHub Actions
 

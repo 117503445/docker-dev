@@ -29,7 +29,11 @@ description: |
 - `scripts/tasks/test/Taskfile.yml` 必须提供 `ut`、`it`、`e2e` 和 `all` 任务，对应 `go-task test:ut`、`go-task test:it`、`go-task test:e2e` 和 `go-task test`。
 - `test:ut` 的日志必须输出到 `./data/ut/`；`test:it` 的日志必须输出到 `./data/it/`。
 - 集成测试指先编译并启动一个 Go 服务，再使用 Go client 调用该服务验证行为；启动、等待、调用和清理逻辑写在 `scripts/go-scripts it` 中。
+- 每个 IT/E2E case 都必须自己启动一套新的服务，运行测试代码，把服务日志输出到自己的 case 目录，最后关闭这套服务，避免 case 间共享服务状态。
+- IT/E2E 的 `server.log` 不要输出 ASCII/ANSI 颜色控制字符；启动服务时需要传入 `nocolor` 参数，并让 zerolog console writer 禁用颜色。
 - Taskfile 不能包含复杂逻辑，越简单越好；复杂逻辑写在 `scripts/go-scripts/` 中，再由 Taskfile 调用。
+- `scripts/go-scripts` 根包只负责 CLI 解析、命令注册和分发；每个命令的实际实现必须放到子模块（Go 子包），例如 `scripts/go-scripts/internal/build`、`scripts/go-scripts/internal/it`、`scripts/go-scripts/internal/e2e`，不要把 `build.go`、`release.go` 这类实现文件直接放在根包。
+- E2E 如需浏览器自动化或 Playwright，必须使用 Go 和 `github.com/playwright-community/playwright-go` 实现，不使用 Python Playwright。
 - 所有任务都要确保基于本地最新代码执行；运行、测试、E2E 等任务必须通过 `deps` 依赖必要的生成或构建任务，例如 E2E 依赖后端和前端构建。
 - 编译、代码生成等无副作用任务应写好 `sources` 和 `generates`，确保代码不变时不重新执行。
 - 有副作用的任务不要配置 `sources` 和 `generates`，例如 `run`、`deploy`、`test`、`e2e`。
@@ -96,7 +100,24 @@ tasks:
       - ./data/cli/cli
       - ./data/rpc/rpc
     cmds:
-      - cd ./scripts/go-scripts && go run . build
+      - go run ./scripts/go-scripts build
+```
+
+`scripts/go-scripts` 命令实现结构：
+
+```text
+scripts/go-scripts/
+├── main.go                    # 程序入口，只初始化日志和解析 CLI
+├── cli.go                     # 命令定义和分发，不写具体业务逻辑
+└── internal/
+    ├── build/                 # build 命令实现
+    ├── release/               # release 命令实现
+    ├── deploy/                # deploy 命令实现
+    ├── docker/                # build-docker 命令实现
+    ├── format/                # format 命令实现
+    ├── invoke/                # invoke 命令实现
+    ├── it/                    # it 命令实现
+    └── e2e/                   # e2e 命令实现
 ```
 
 ## 常用模式
@@ -193,9 +214,8 @@ tasks:
     deps:
       - ":build:bin"
       - ":fe:build"
-    dir: ./scripts/e2e
     cmds:
-      - uv run main.py {{.CLI_ARGS}}
+      - go run ./scripts/go-scripts e2e {{.CLI_ARGS}}
 ```
 
 ### 运行构建产物
@@ -225,7 +245,7 @@ tasks:
     desc: "构建容器镜像"
     deps: [":base:clear", ":build:bin"]
     cmds:
-      - cd ./scripts/go-scripts && go run . build-docker {{.CLI_ARGS}}
+      - go run ./scripts/go-scripts build-docker {{.CLI_ARGS}}
 ```
 
 调用示例：
@@ -236,11 +256,13 @@ task build:docker -- --push
 
 ### 集成测试脚本
 
-`test:it` 只负责调用 `scripts/go-scripts it` 并收集日志。`scripts/go-scripts it` 内部负责启动已编译的 Go 服务、等待健康检查通过、使用 Go client 调用服务接口验证行为，并在结束时清理服务进程。
+`test:it` 只负责调用 `scripts/go-scripts it` 并收集日志。`scripts/go-scripts it` 内部负责按 case 启动已编译的 Go 服务、等待健康检查通过、使用 Go client 调用服务接口验证行为，并在每个 case 结束时清理服务进程。每个 case 的服务日志写入 `./data/it/<case_name>/server.log`。启动服务时传入 `nocolor` 参数，使服务端 zerolog console writer 禁用颜色，避免 `server.log` 写入 ASCII/ANSI 颜色控制字符。
+
+`test:e2e` 只负责调用 `scripts/go-scripts e2e` 并收集结果。`scripts/go-scripts/internal/e2e` 内部每个 case 负责启动一套新的服务，使用 `github.com/playwright-community/playwright-go` 运行浏览器测试，把服务日志写入 `./data/e2e/<case_name>/logs/server.log`，并在浏览器测试结束后清理服务进程。启动服务时同样传入 `nocolor` 参数，确保 `server.log` 不包含颜色控制字符。首次运行或 CI 初始化时，按 `go.mod` 中的 playwright-go 版本安装浏览器驱动，或在代码中显式调用 `playwright.Install()`。
 
 ### 指定工作目录
 
-前端、E2E 等子项目优先使用 `dir`，避免在命令里反复 `cd`：
+前端等子项目优先使用 `dir`，避免在命令里反复 `cd`；E2E 入口统一通过 `scripts/go-scripts e2e` 分发：
 
 ```yaml
 tasks:
@@ -258,14 +280,13 @@ tasks:
     cmds:
       - pnpm build
 
-  case:
+  e2e:
     desc: "运行指定的 E2E 测试用例"
     deps:
       - ":build:bin"
       - ":fe:build"
-    dir: ./scripts/e2e
     cmds:
-      - uv run main.py {{.CLI_ARGS}}
+      - go run ./scripts/go-scripts e2e {{.CLI_ARGS}}
 ```
 
 ### 临时补充环境变量
