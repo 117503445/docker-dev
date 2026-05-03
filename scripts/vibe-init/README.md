@@ -7,7 +7,7 @@
 可以直接通过 `go install` 安装最新版本：
 
 ```bash
-go install github.com/117503445/docker-dev/scripts/vibe-init@latest
+GOPROXY=direct go install github.com/117503445/docker-dev/scripts/vibe-init@latest
 ```
 
 安装完成后执行：

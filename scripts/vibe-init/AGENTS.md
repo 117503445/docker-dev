@@ -4,5 +4,7 @@
     2. 修改代码，运行 `go-task e2e -- --case <name>`，直到成功。
     3. 成功后，运行 `go-task e2e` 运行全部测试。密钥文件必须放在 .env 中，并且在代码中主动加载 .env。不应该放在 vcs 的文件（如代码生成的）应使用 .gitignore 排除。
 - 前端使用 TypeScript 编写。如果没有特殊声明，其他所有代码、脚本使用 Go 编写。
+- 如果需要 playwright，使用 https://github.com/playwright-community/playwright-go；如果需要写 go websocket，使用 https://github.com/coder/websocket。
 - 如果使用 zerolog 作为日志库，使用 `log.Ctx(ctx)` 打印日志。确保通过日志可以快速定位问题。
 - 当单个代码文件过大时，尝试拆分为多个文件或者多个模块。
+- 如果存在 docs/需求.md，就在 docs/需求.md 记录来自用户的完整需求，不要遗漏，保持简洁。按逻辑结构组织需求，不按用户提出顺序追加。
