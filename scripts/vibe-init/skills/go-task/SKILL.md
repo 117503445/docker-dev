@@ -18,7 +18,9 @@ description: |
 
 ## 基本原则
 
-- 根目录 `Taskfile.yml` 只做全局配置、`includes` 和稳定入口转发，不要堆积具体业务命令。
+- 根目录 `Taskfile.yml` 只做全局配置、`includes` 和稳定入口转发，对外可见操作只保留 `run` 和 `test`。
+- `default` 只能作为无 `desc` 的别名转发到 `run`，不要作为独立操作展示。
+- 不要提供 `build`、`deploy`、`format`、`e2e` 等顶层任务；具体能力放到领域任务命名空间或内部任务。
 - 领域任务放到 `scripts/tasks/<领域>/Taskfile.yml`，例如 `build`、`run`、`gen`、`deploy`、`format`、`fe`、`test`。
 - 所有对用户可见的任务必须有中文 `desc`。
 - 可复用但不希望用户直接调用的任务设置 `internal: true`。
@@ -41,7 +43,7 @@ description: |
 
 ## 推荐结构
 
-根目录 `Taskfile.yml`：
+根目录 `Taskfile.yml` 只暴露 `run` 和 `test`，默认任务指向 `run`：
 
 ```yaml
 version: 3
@@ -67,6 +69,10 @@ includes:
     taskfile: ./scripts/tasks/test
 
 tasks:
+  default:
+    cmds:
+      - task: run
+
   run:
     desc: "运行本地服务"
     cmds:
@@ -309,7 +315,7 @@ tasks:
 1. 先用 `rg -n "任务名|脚本名|文件名" Taskfile.yml scripts/tasks` 查清现有引用。
 2. 判断是否需要新增 include；如果是新领域，创建 `scripts/tasks/<领域>/Taskfile.yml` 并在根 `Taskfile.yml` 注册。
 3. 为每个用户可见任务补中文 `desc`。
-4. 确认顶层只保留 `run` 和 `test` 稳定入口。
+4. 确认根目录对外可见任务只保留 `run` 和 `test`，`default` 必须无 `desc` 并转发到 `run`。
 5. 为运行和测试任务补齐构建依赖，确保任务基于本地最新代码执行。
 6. 为编译、代码生成等无副作用任务补齐 `sources` 和 `generates`，让 go-task 缓存判断可靠。
 7. 不给有副作用的任务配置 `sources` 和 `generates`。
@@ -355,21 +361,19 @@ task --dry <任务名>
 task --force <任务名>
 ```
 
-- 运行本地服务和测试：
+- 运行根目录暴露的操作：
 
 ```bash
+go-task
 go-task run
-go-task test:ut
-go-task test:it
-go-task test:e2e -- --case <name>
 go-task test
 ```
 
 ## 验收标准
 
 - `task --list` 中的任务描述为中文。
-- 顶层保留可执行的 `run` 本地运行任务。
-- 顶层保留可执行的 `test` 全量测试任务。
+- `task --list` 只展示 `run` 本地运行任务和 `test` 全量测试任务。
+- 根目录 `default` 任务无 `desc`，并转发到 `run`。
 - 根 `Taskfile.yml` 保持轻量，只负责 `dotenv`、`includes` 和稳定入口转发。
 - 领域任务文件路径稳定，命名空间清晰。
 - 依赖链可执行，不依赖当前 shell 的隐式工作目录。
