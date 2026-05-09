@@ -29,6 +29,7 @@ vibe-init
 | Codex 设置 | `~/.codex/config.toml`、`~/.codex/hooks.json` | 启用 `codex_hooks` 并配置 hooks |
 | Codex 指令 | `~/.codex/AGENTS.md` | 安装 Codex 全局指令 |
 | Codex skills | `~/.codex/skills/` | 安装本项目内置 skills |
+| Paseo skills | `~/.agents/skills/` | 通过 `npx skills add getpaseo/paseo` 安装 orchestration skills |
 
 ## 会话日志
 

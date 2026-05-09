@@ -43,6 +43,7 @@ func main() {
 	mustCopyFS("skills", filepath.Join(codexDir, "skills"))
 	ensureCodexHooksEnabled(filepath.Join(codexDir, "config.toml"))
 	installUIUXProMaxSkill(home)
+	installPaseoSkills(home)
 
 	log.Info().Msg("vibe-init completed")
 }
@@ -137,6 +138,11 @@ func installUIUXProMaxSkillForAI(home string, ai string) {
 		return
 	}
 	mustCopyLocalDir(srcDir, destDir)
+}
+
+// installPaseoSkills 安装 Paseo orchestration skills，home 参数是用户主目录。
+func installPaseoSkills(home string) {
+	mustRunCommand(home, "npx", "skills", "add", "getpaseo/paseo")
 }
 
 // mustCopyLocalDir 复制本地目录，并在复制前清理目标目录。
