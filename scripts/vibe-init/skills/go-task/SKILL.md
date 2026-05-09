@@ -33,6 +33,7 @@ description: |
 - 集成测试指先编译并启动一个 Go 服务，再使用 Go client 调用该服务验证行为；启动、等待、调用和清理逻辑写在 `scripts/go-scripts it` 中。
 - 每个 IT/E2E case 都必须自己启动一套新的服务，运行测试代码，把服务日志输出到自己的 case 目录，最后关闭这套服务，避免 case 间共享服务状态。
 - IT/E2E 的 `server.log` 不要输出 ASCII/ANSI 颜色控制字符；启动服务时需要传入 `nocolor` 参数，并让 zerolog console writer 禁用颜色。
+- 不要为测试脚本、部署脚本或构建脚本本身编写测试；测试只覆盖最终会发布的代码和用户可见行为。
 - Taskfile 不能包含复杂逻辑，越简单越好；复杂逻辑写在 `scripts/go-scripts/` 中，再由 Taskfile 调用。
 - `scripts/go-scripts` 根包只负责 CLI 解析、命令注册和分发；每个命令的实际实现必须放到子模块（Go 子包），例如 `scripts/go-scripts/internal/build`、`scripts/go-scripts/internal/it`、`scripts/go-scripts/internal/e2e`，不要把 `build.go`、`release.go` 这类实现文件直接放在根包。
 - E2E 如需浏览器自动化或 Playwright，必须使用 Go 和 `github.com/playwright-community/playwright-go` 实现，不使用 Python Playwright。
@@ -332,8 +333,9 @@ tasks:
 3. 修改实现代码。
 4. 如果新增或修改了 E2E，再运行 `go-task test:e2e -- --case <name>`，直到通过。
 5. 运行 `go-task test`，确认所有测试通过。
-6. 密钥文件必须放在 `.env` 中，并在代码中主动加载 `.env`。
-7. 不应进入版本控制的生成文件、缓存、日志和构建产物必须用 `.gitignore` 排除。
+6. 不要为测试脚本、部署脚本或构建脚本本身编写测试；如果这些脚本影响发布产物，应通过最终发布代码或用户可见行为间接验证。
+7. 密钥文件必须放在 `.env` 中，并在代码中主动加载 `.env`。
+8. 不应进入版本控制的生成文件、缓存、日志和构建产物必须用 `.gitignore` 排除。
 
 ## 排查技巧
 

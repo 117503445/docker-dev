@@ -27,6 +27,7 @@ description: |
 - 集成测试指先编译并启动一个 Go 服务，再使用 Go client 调用该服务验证行为；启动、等待、调用和清理逻辑写在 `scripts/go-scripts it` 中。
 - 每个 IT/E2E case 都必须自己启动一套新的服务，运行测试代码，把服务日志输出到自己的 case 目录，最后关闭这套服务，避免 case 间共享服务状态。
 - IT/E2E 的 `server.log` 不要输出 ASCII/ANSI 颜色控制字符；启动服务时需要传入 `nocolor` 参数，并让 zerolog console writer 禁用颜色。
+- 不要为测试脚本、部署脚本或构建脚本本身编写测试；测试只覆盖最终会发布的代码和用户可见行为。
 - 本地运行入口统一使用 `go-task run`。
 - 修改后必须运行 `go-task test`，并保证通过。
 - Taskfile 不能包含复杂逻辑，越简单越好；如果需要复杂逻辑，写在 `scripts/go-scripts/` 中，再由 Taskfile 调用。
@@ -475,6 +476,7 @@ func newStaticHandler() http.Handler {
 - Taskfile 不能包含复杂逻辑，越简单越好；复杂逻辑写在 `scripts/go-scripts/` 中，再由 Taskfile 调用。
 - `scripts/go-scripts` 根包只负责 CLI 解析、命令注册和分发；每个命令的实际实现必须放到子模块（Go 子包），例如 `scripts/go-scripts/internal/build`、`scripts/go-scripts/internal/it`、`scripts/go-scripts/internal/e2e`，不要把 `build.go`、`release.go` 这类实现文件直接放在根包。
 - E2E 如需浏览器自动化或 Playwright，必须使用 Go 和 `github.com/playwright-community/playwright-go` 实现，不使用 Python Playwright。
+- 不要为测试脚本、部署脚本或构建脚本本身编写测试；测试只覆盖最终会发布的代码和用户可见行为。
 - 所有任务都要确保基于本地最新代码执行；运行、测试、E2E 等任务必须通过 `deps` 依赖必要的生成或构建任务，例如 E2E 依赖后端和前端构建。
 - 编译、代码生成等无副作用任务应写好 `sources` 和 `generates`，确保代码不变时不重新执行。
 - 有副作用的任务不要配置 `sources` 和 `generates`，例如 `run`、`deploy`、`test`、`e2e`。
